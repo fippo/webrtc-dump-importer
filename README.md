@@ -6,3 +6,5 @@ But heck, I can just make a web page to do it. And use a [better library for gra
 
 ## License
 MIT
+
+Note that the (awesome) Highcharts library used for plots may need a license. See http://shop.highsoft.com/faq/non-commercial
