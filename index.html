@@ -78,7 +78,7 @@ function importUpdatesAndStats(data) {
                 document.getElementById('container').appendChild(d);
                 new Highcharts.Chart({
                     title: {
-                        text: reportname
+                        text: reportname + ' (connection ' + connid + ')'
                     },
                     /*
                     xAxis: {
