@@ -26,20 +26,79 @@ function importUpdatesAndStats(data) {
     var connection;
     var connid, reportname, statname;
 
-    /*
     // first, display the updateLog
-    for (connid in data) {
-        connection = thelog[connid];
-        connection.pid = connid.split("-")[0]
-                connection.lid = connid.split("-")[1]
-                connection.rid = 1; // can not be reconstructed
-        connection.log = connection.updateLog;
-        delete connection.updateLog;
-        connectiondata.push(connection);
+    for (connid in data.PeerConnections) {
+        connection = data.PeerConnections[connid]; 
+        connection.pid = connid.split("-")[0];
+        connection.lid = connid.split("-")[1];
+        connection.rid = 1; // can not be reconstructed
+
+        var table = document.createElement('table');
+        var head = document.createElement('tr');
+        table.appendChild(head);
+
+        var el;
+        el = document.createElement('th');
+        el.innerText = 'connection ' + connid;
+        head.appendChild(el);
+
+        el = document.createElement('th');
+        el.innerText = connection.url;
+        head.appendChild(el);
+
+        connection.updateLog.forEach(function (event) {
+            var row = document.createElement('tr');
+            el = document.createElement('td');
+            el.innerText = event.time;
+            row.appendChild(el);
+
+            // recreate the HTML of webrtc-internals
+            var details = document.createElement('details');
+            el = document.createElement('summary');
+            el.innerText = event.type;
+            details.appendChild(el);
+
+            el = document.createElement('pre');
+            switch(event.type) {
+            case 'setLocalDescription':
+            case 'setRemoteDescription':
+            case 'createOfferOnSuccess':
+            case 'createAnswerOnSuccess':
+                el.innerText = event.value.type + '\r\n' + event.value.sdp;
+                break;
+            default:
+                el.innerText = JSON.stringify(event.value, null, ' ');
+                break;
+            }
+            details.appendChild(el);
+
+
+            el = document.createElement('td');
+            el.appendChild(details);
+
+            row.appendChild(el);
+
+            // guess what, if the event type contains 'Failure' one could use css to highlight it
+            if (event.type.indexOf('Failure') !== -1) {
+                row.style.backgroundColor = 'red';
+            }
+            if (event.type === 'iceConnectionStateChange') {
+                console.log(event.value);
+                switch(event.value) {
+                case 'ICEConnectionStateConnected':
+                case 'ICEConnectionStateCompleted':
+                    row.style.backgroundColor = 'green';
+                    break;
+                case 'ICEConnectionStateFailed':
+                    row.style.backgroundColor = 'red';
+                    break;
+                }
+            }
+            table.appendChild(row);
+        });
+        document.getElementById('tables').appendChild(table);
     }
-    updateAllPeerConnections(connectiondata);   
-    delete connectiondata;
-    */
+    // FIXME: also display GUM calls
 
     // then, update the stats displays
     for (connid in data.PeerConnections) {
@@ -102,6 +161,8 @@ function importUpdatesAndStats(data) {
     </head>
     <body>
         <form><input type="file" onchange="doImport(event)"></form>
+        <div id="tables">
+        </div>
         <div id="container" style="min-width: 95%; height: 400px; margin: 0 auto">
         </div>
     </body>
