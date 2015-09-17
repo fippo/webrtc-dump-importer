@@ -46,9 +46,10 @@ function importUpdatesAndStats(data) {
         connection = data.PeerConnections[connid];
         var reportobj = {};
         for (reportname in connection.stats) { 
-            var t = reportname.split("-");
+            var t = reportname.split('-');
             var comp = t.pop();
-            var stat = t.join("-");
+
+            var stat = t.join('-');
             if (!reportobj.hasOwnProperty(stat)) { 
                 reportobj[stat] = [];
             }
@@ -56,6 +57,9 @@ function importUpdatesAndStats(data) {
         }
         console.log(reportobj);
         for (reportname in reportobj) {
+            // ignore useless graphs
+            if (reportname.indexOf('Cand-') === 0 || reportname.indexOf('Channel') === 0) continue;
+
             var series = [];
             var reports = reportobj[reportname];
             reports.forEach(function (report) {
