@@ -59,19 +59,8 @@ function importUpdatesAndStats(data) {
             details.appendChild(el);
 
             el = document.createElement('pre');
-            switch(event.type) {
-            case 'setLocalDescription':
-            case 'setRemoteDescription':
-            case 'createOfferOnSuccess':
-            case 'createAnswerOnSuccess':
-                el.innerText = event.value.type + '\r\n' + event.value.sdp;
-                break;
-            default:
-                el.innerText = JSON.stringify(event.value, null, ' ');
-                break;
-            }
+            el.innerText = event.value;
             details.appendChild(el);
-
 
             el = document.createElement('td');
             el.appendChild(details);
