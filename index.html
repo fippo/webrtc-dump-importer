@@ -26,12 +26,29 @@ function importUpdatesAndStats(data) {
     var connection;
     var connid, reportname, statname;
 
+    // FIXME: also display GUM calls (can they be correlated to addStream?)
+
     // first, display the updateLog
     for (connid in data.PeerConnections) {
+        var container = document.createElement('div');
+        container.style.margin = '10px';
+        document.getElementById('tables').appendChild(container);
+
         connection = data.PeerConnections[connid]; 
         connection.pid = connid.split("-")[0];
         connection.lid = connid.split("-")[1];
         connection.rid = 1; // can not be reconstructed
+
+        // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
+        var signalingState = document.createElement('div');
+        signalingState.id = 'signalingstate_' + connid;
+        signalingState.textContent = 'Signaling state:';
+        container.appendChild(signalingState);
+
+        var iceConnectionState = document.createElement('div');
+        iceConnectionState.id = 'iceconnectionstate_' + connid;
+        iceConnectionState.textContent = 'ICE connection state:';
+        container.appendChild(iceConnectionState);
 
         var table = document.createElement('table');
         var head = document.createElement('tr');
@@ -83,12 +100,20 @@ function importUpdatesAndStats(data) {
                     break;
                 }
             }
+
+            // update state displays
+            // FIXME: would be cool if a click on this would jump to the table row
+            if (event.type === 'signalingStateChange') {
+                signalingState.textContent += ' => ' + event.value;
+            }
+            if (event.type === 'iceConnectionStateChange') {
+                iceConnectionState.textContent += ' => ' + event.value;
+            }
+
             table.appendChild(row);
         });
-        document.getElementById('tables').appendChild(table);
+        container.appendChild(table);
     }
-    // FIXME: also display GUM calls
-
     // then, update the stats displays
     for (connid in data.PeerConnections) {
         connection = data.PeerConnections[connid];
