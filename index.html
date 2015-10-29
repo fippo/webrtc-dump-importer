@@ -3,10 +3,22 @@
         <meta charset="utf-8">
         <title>Import webrtc-internals dumps</title>
         <script src="//code.jquery.com/jquery-2.1.3.min.js"></script>
-        <!-- highcharts is used under the terms of 
+        <!-- highcharts is used under the terms of
             http://shop.highsoft.com/faq/non-commercial
         -->
         <script src="//code.highcharts.com/highcharts.js"></script>
+        <style>
+            body, body svg text {
+                font-family: monospace;
+            }
+            details[open] pre {
+                padding-left: 10px;
+                padding-bottom: 10px;
+            }
+            details[open] summary {
+                color: blue;
+            }
+        </style>
 
         <script>
 function doImport(evt) {
@@ -34,7 +46,7 @@ function importUpdatesAndStats(data) {
         container.style.margin = '10px';
         document.getElementById('tables').appendChild(container);
 
-        connection = data.PeerConnections[connid]; 
+        connection = data.PeerConnections[connid];
         connection.pid = connid.split("-")[0];
         connection.lid = connid.split("-")[1];
         connection.rid = 1; // can not be reconstructed
@@ -66,6 +78,7 @@ function importUpdatesAndStats(data) {
         connection.updateLog.forEach(function (event) {
             var row = document.createElement('tr');
             el = document.createElement('td');
+            el.setAttribute('nowrap', '');
             el.innerText = event.time;
             row.appendChild(el);
 
@@ -118,12 +131,12 @@ function importUpdatesAndStats(data) {
     for (connid in data.PeerConnections) {
         connection = data.PeerConnections[connid];
         var reportobj = {};
-        for (reportname in connection.stats) { 
+        for (reportname in connection.stats) {
             var t = reportname.split('-');
             var comp = t.pop();
 
             var stat = t.join('-');
-            if (!reportobj.hasOwnProperty(stat)) { 
+            if (!reportobj.hasOwnProperty(stat)) {
                 reportobj[stat] = [];
             }
             reportobj[stat].push([comp, JSON.parse(connection.stats[reportname].values)]);
