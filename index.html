@@ -18,6 +18,15 @@
             details[open] summary {
                 color: blue;
             }
+            details.host summary:after {
+                content: ' (host)';
+            }
+            details.relay summary:after {
+                content: ' (relay)';
+            }
+            details.srflx summary:after {
+                content: ' (srflx)'
+            }
         </style>
 
         <script>
@@ -111,6 +120,13 @@ function importUpdatesAndStats(data) {
                 case 'ICEConnectionStateFailed':
                     row.style.backgroundColor = 'red';
                     break;
+                }
+            }
+
+            if (event.type === 'onIceCandidate') {
+                var matches = event.value.match(/(?:typ )([a-z]*)(?: )/);
+                if (matches && matches.length === 2) {
+                    details.classList.add(matches[1]);
                 }
             }
 
