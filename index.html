@@ -43,6 +43,7 @@ function doImport(evt) {
   reader.readAsText(files[0]);
 }
 
+var graphs = {};
 function importUpdatesAndStats(data) {
     var connection;
     var connid, reportname, statname;
@@ -146,6 +147,7 @@ function importUpdatesAndStats(data) {
     // then, update the stats displays
     for (connid in data.PeerConnections) {
         connection = data.PeerConnections[connid];
+        graphs[connid] = {};
         var reportobj = {};
         for (reportname in connection.stats) {
             var t = reportname.split('-');
@@ -157,7 +159,6 @@ function importUpdatesAndStats(data) {
             }
             reportobj[stat].push([comp, JSON.parse(connection.stats[reportname].values)]);
         }
-        console.log(reportobj);
         for (reportname in reportobj) {
             // ignore useless graphs
             if (reportname.indexOf('Cand-') === 0 || reportname.indexOf('Channel') === 0) continue;
@@ -196,6 +197,7 @@ function importUpdatesAndStats(data) {
                     },
                     series: series
                 });
+
                 // range annotitation
                 if (window.location.hash.length > 1) {
                     // #conn-id PLUS start1 PLUS last1 PLUS label1 SEMICOLON start2 ...
@@ -203,7 +205,6 @@ function importUpdatesAndStats(data) {
                     var bands = window.location.hash.substring(1).split(';');
                     bands.forEach(function (band) {
                         var parts = band.split('+');
-                        console.log(parts, connid);
                         if (parts.length != 4) return;
                         if (parts[0] !== connid) return;
                         parts[1] = parseInt(parts[1], 10);
@@ -218,10 +219,37 @@ function importUpdatesAndStats(data) {
                         });
                     });
                 }
+                graphs[connid][reportname] = graph;
             }
         }
     }
+    onHashChange();
 }
+
+function onHashChange() {
+    var bands = window.location.hash.substring(1).split(';');
+    bands.forEach(function (band) {
+        var parts = band.split('+');
+        if (parts.length != 4) return;
+        parts[1] = parseInt(parts[1], 10);
+        parts[2] = parseInt(parts[2], 10);
+        Object.keys(graphs).forEach(function (connid) {
+            if (parts[0] !== connid) return;
+            Object.keys(graphs[connid]).forEach(function (reportname) {
+                var graph = graphs[connid][reportname];
+                graph.xAxis[0].addPlotBand({
+                    from: parts[1],
+                    to: parts[2],
+                    color: 'green',
+                    label: {
+                        text: parts[3]
+                    }
+                });
+            });
+        });
+    });
+}
+window.addEventListener('hashchange', onHashChange);
         </script>
     </head>
     <body>
