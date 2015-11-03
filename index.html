@@ -197,50 +197,40 @@ function importUpdatesAndStats(data) {
                     },
                     series: series
                 });
-
-                // range annotitation
-                if (window.location.hash.length > 1) {
-                    // #conn-id PLUS start1 PLUS last1 PLUS label1 SEMICOLON start2 ...
-                    // #8100-6+1+3+foo;8200-5+1+7+bar;...
-                    var bands = window.location.hash.substring(1).split(';');
-                    bands.forEach(function (band) {
-                        var parts = band.split('+');
-                        if (parts.length != 4) return;
-                        if (parts[0] !== connid) return;
-                        parts[1] = parseInt(parts[1], 10);
-                        parts[2] = parseInt(parts[2], 10);
-                        graph.xAxis[0].addPlotBand({
-                            from: parts[1],
-                            to: parts[2],
-                            color: 'green',
-                            label: {
-                                text: parts[3]
-                            }
-                        });
-                    });
-                }
                 graphs[connid][reportname] = graph;
             }
         }
     }
-    onHashChange();
+    drawPlotBands();
 }
 
-function onHashChange() {
+function drawPlotBands() {
+    // range annotitation
+    // #conn-id PLUS start1 PLUS last1 PLUS label1 SEMICOLON start2 ...
+    // #8100-6+1+3+foo;8200-5+1+7+bar;...
+    if (window.location.hash.length === 0) return;
     var bands = window.location.hash.substring(1).split(';');
+    var count = 0;
     bands.forEach(function (band) {
         var parts = band.split('+');
         if (parts.length != 4) return;
         parts[1] = parseInt(parts[1], 10);
         parts[2] = parseInt(parts[2], 10);
         Object.keys(graphs).forEach(function (connid) {
-            if (parts[0] !== connid) return;
             Object.keys(graphs[connid]).forEach(function (reportname) {
                 var graph = graphs[connid][reportname];
+                var axis = graph.xAxis[0];
+                // remove all current plot bands
+                axis.plotLinesAndBands.forEach(function (b) {
+                    axis.removePlotBand(b.id);
+                });
+
+                if (parts[0] !== connid) return;
                 graph.xAxis[0].addPlotBand({
                     from: parts[1],
                     to: parts[2],
                     color: 'green',
+                    id: 'band_' + count++,
                     label: {
                         text: parts[3]
                     }
@@ -249,7 +239,7 @@ function onHashChange() {
         });
     });
 }
-window.addEventListener('hashchange', onHashChange);
+window.addEventListener('hashchange', drawPlotBands);
         </script>
     </head>
     <body>
