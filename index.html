@@ -124,7 +124,7 @@ function importUpdatesAndStats(data) {
                 }
             }
 
-            if (event.type === 'onIceCandidate') {
+            if (event.type === 'onIceCandidate' || event.type === 'addIceCandidate') {
                 var matches = event.value.match(/(?:typ )([a-z]*)(?: )/);
                 if (matches && matches.length === 2) {
                     details.classList.add(matches[1]);
