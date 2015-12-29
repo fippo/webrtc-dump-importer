@@ -43,7 +43,56 @@ function doImport(evt) {
   reader.readAsText(files[0]);
 }
 
+function processTraceEvent(table, event) {
+    var row = document.createElement('tr');
+    el = document.createElement('td');
+    el.setAttribute('nowrap', '');
+    el.innerText = event.time;
+    row.appendChild(el);
+
+    // recreate the HTML of webrtc-internals
+    var details = document.createElement('details');
+    el = document.createElement('summary');
+    el.innerText = event.type;
+    details.appendChild(el);
+
+    el = document.createElement('pre');
+    el.innerText = event.value;
+    details.appendChild(el);
+
+    el = document.createElement('td');
+    el.appendChild(details);
+
+    row.appendChild(el);
+
+    // guess what, if the event type contains 'Failure' one could use css to highlight it
+    if (event.type.indexOf('Failure') !== -1) {
+        row.style.backgroundColor = 'red';
+    }
+    if (event.type === 'iceConnectionStateChange') {
+        console.log(event.value);
+        switch(event.value) {
+        case 'ICEConnectionStateConnected':
+        case 'ICEConnectionStateCompleted':
+            row.style.backgroundColor = 'green';
+            break;
+        case 'ICEConnectionStateFailed':
+            row.style.backgroundColor = 'red';
+            break;
+        }
+    }
+
+    if (event.type === 'onIceCandidate' || event.type === 'addIceCandidate') {
+        var parts = event.value.split(',')[2].trim().split(' ');
+        if (parts && parts.length >= 9 && parts[7] === 'typ') {
+            details.classList.add(parts[8]);
+        }
+    }
+    table.appendChild(row);
+}
+
 var graphs = {};
+var containers = {};
 function importUpdatesAndStats(data) {
     var connection;
     var connid, reportname, statname;
@@ -66,11 +115,23 @@ function importUpdatesAndStats(data) {
         signalingState.id = 'signalingstate_' + connid;
         signalingState.textContent = 'Signaling state:';
         container.appendChild(signalingState);
+        connection.updateLog.forEach(function(event) {
+            // FIXME: would be cool if a click on this would jump to the table row
+            if (event.type === 'signalingStateChange') {
+                signalingState.textContent += ' => ' + event.value;
+            }
+        });
 
         var iceConnectionState = document.createElement('div');
         iceConnectionState.id = 'iceconnectionstate_' + connid;
         iceConnectionState.textContent = 'ICE connection state:';
         container.appendChild(iceConnectionState);
+        connection.updateLog.forEach(function(event) {
+            // update state displays
+            if (event.type === 'iceConnectionStateChange') {
+                iceConnectionState.textContent += ' => ' + event.value;
+            }
+        });
 
         var table = document.createElement('table');
         var head = document.createElement('tr');
@@ -85,65 +146,17 @@ function importUpdatesAndStats(data) {
         el.innerText = connection.url;
         head.appendChild(el);
 
-        connection.updateLog.forEach(function (event) {
-            var row = document.createElement('tr');
-            el = document.createElement('td');
-            el.setAttribute('nowrap', '');
-            el.innerText = event.time;
-            row.appendChild(el);
-
-            // recreate the HTML of webrtc-internals
-            var details = document.createElement('details');
-            el = document.createElement('summary');
-            el.innerText = event.type;
-            details.appendChild(el);
-
-            el = document.createElement('pre');
-            el.innerText = event.value;
-            details.appendChild(el);
-
-            el = document.createElement('td');
-            el.appendChild(details);
-
-            row.appendChild(el);
-
-            // guess what, if the event type contains 'Failure' one could use css to highlight it
-            if (event.type.indexOf('Failure') !== -1) {
-                row.style.backgroundColor = 'red';
-            }
-            if (event.type === 'iceConnectionStateChange') {
-                console.log(event.value);
-                switch(event.value) {
-                case 'ICEConnectionStateConnected':
-                case 'ICEConnectionStateCompleted':
-                    row.style.backgroundColor = 'green';
-                    break;
-                case 'ICEConnectionStateFailed':
-                    row.style.backgroundColor = 'red';
-                    break;
-                }
-            }
-
-            if (event.type === 'onIceCandidate' || event.type === 'addIceCandidate') {
-                var parts = event.value.split(',')[2].trim().split(' ');
-                if (parts && parts.length >= 9 && parts[7] === 'typ') {
-                    details.classList.add(parts[8]);
-                }
-            }
-
-            // update state displays
-            // FIXME: would be cool if a click on this would jump to the table row
-            if (event.type === 'signalingStateChange') {
-                signalingState.textContent += ' => ' + event.value;
-            }
-            if (event.type === 'iceConnectionStateChange') {
-                iceConnectionState.textContent += ' => ' + event.value;
-            }
-
-            table.appendChild(row);
+        connection.updateLog.forEach(function(event) {
+            processTraceEvent(table, event);
         });
         container.appendChild(table);
+        containers[connid] = {
+            updateLog: table,
+            ice: iceConnectionState,
+            signalingState: signalingState
+        };
     }
+
     // then, update the stats displays
     for (connid in data.PeerConnections) {
         connection = data.PeerConnections[connid];
