@@ -43,6 +43,48 @@ function doImport(evt) {
   reader.readAsText(files[0]);
 }
 
+function createContainer(connection, connid) {
+    var container = document.createElement('div');
+    container.style.margin = '10px';
+
+    connection.pid = connid.split('-')[0];
+    connection.lid = connid.split('-')[1];
+    connection.rid = 1; // can not be reconstructed
+
+    // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
+    var signalingState = document.createElement('div');
+    signalingState.id = 'signalingstate_' + connid;
+    signalingState.textContent = 'Signaling state:';
+    container.appendChild(signalingState);
+    var iceConnectionState = document.createElement('div');
+    iceConnectionState.id = 'iceconnectionstate_' + connid;
+    iceConnectionState.textContent = 'ICE connection state:';
+    container.appendChild(iceConnectionState);
+
+    var table = document.createElement('table');
+    var head = document.createElement('tr');
+    table.appendChild(head);
+
+    var el;
+    el = document.createElement('th');
+    el.innerText = 'connection ' + connid;
+    head.appendChild(el);
+
+    el = document.createElement('th');
+    el.innerText = connection.url;
+    head.appendChild(el);
+
+    container.appendChild(table);
+
+    containers[connid] = {
+        updateLog: table,
+        iceConnectionState: iceConnectionState,
+        signalingState: signalingState
+    };
+
+    return container;
+}
+
 function processTraceEvent(table, event) {
     var row = document.createElement('tr');
     el = document.createElement('td');
@@ -70,7 +112,6 @@ function processTraceEvent(table, event) {
         row.style.backgroundColor = 'red';
     }
     if (event.type === 'iceConnectionStateChange') {
-        console.log(event.value);
         switch(event.value) {
         case 'ICEConnectionStateConnected':
         case 'ICEConnectionStateCompleted':
@@ -101,60 +142,25 @@ function importUpdatesAndStats(data) {
 
     // first, display the updateLog
     for (connid in data.PeerConnections) {
-        var container = document.createElement('div');
-        container.style.margin = '10px';
+        var connection = data.PeerConnections[connid];
+        var container = createContainer(connection, connid);
         document.getElementById('tables').appendChild(container);
 
-        connection = data.PeerConnections[connid];
-        connection.pid = connid.split("-")[0];
-        connection.lid = connid.split("-")[1];
-        connection.rid = 1; // can not be reconstructed
-
-        // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
-        var signalingState = document.createElement('div');
-        signalingState.id = 'signalingstate_' + connid;
-        signalingState.textContent = 'Signaling state:';
-        container.appendChild(signalingState);
         connection.updateLog.forEach(function(event) {
-            // FIXME: would be cool if a click on this would jump to the table row
-            if (event.type === 'signalingStateChange') {
-                signalingState.textContent += ' => ' + event.value;
-            }
+            processTraceEvent(containers[connid].updateLog, event);
         });
-
-        var iceConnectionState = document.createElement('div');
-        iceConnectionState.id = 'iceconnectionstate_' + connid;
-        iceConnectionState.textContent = 'ICE connection state:';
-        container.appendChild(iceConnectionState);
         connection.updateLog.forEach(function(event) {
             // update state displays
             if (event.type === 'iceConnectionStateChange') {
-                iceConnectionState.textContent += ' => ' + event.value;
+                containers[connid].iceConnectionState.textContent += ' => ' + event.value;
             }
         });
-
-        var table = document.createElement('table');
-        var head = document.createElement('tr');
-        table.appendChild(head);
-
-        var el;
-        el = document.createElement('th');
-        el.innerText = 'connection ' + connid;
-        head.appendChild(el);
-
-        el = document.createElement('th');
-        el.innerText = connection.url;
-        head.appendChild(el);
-
         connection.updateLog.forEach(function(event) {
-            processTraceEvent(table, event);
+            // FIXME: would be cool if a click on this would jump to the table row
+            if (event.type === 'signalingStateChange') {
+                containers[connid].signalingState.textContent += ' => ' + event.value;
+            }
         });
-        container.appendChild(table);
-        containers[connid] = {
-            updateLog: table,
-            ice: iceConnectionState,
-            signalingState: signalingState
-        };
     }
 
     // then, update the stats displays
