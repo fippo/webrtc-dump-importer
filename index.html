@@ -43,13 +43,9 @@ function doImport(evt) {
   reader.readAsText(files[0]);
 }
 
-function createContainer(connection, connid) {
+function createContainers(connid, url) {
     var container = document.createElement('div');
     container.style.margin = '10px';
-
-    connection.pid = connid.split('-')[0];
-    connection.lid = connid.split('-')[1];
-    connection.rid = 1; // can not be reconstructed
 
     // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
     var signalingState = document.createElement('div');
@@ -71,7 +67,7 @@ function createContainer(connection, connid) {
     head.appendChild(el);
 
     el = document.createElement('th');
-    el.innerText = connection.url;
+    el.innerText = url;
     head.appendChild(el);
 
     container.appendChild(table);
@@ -143,7 +139,7 @@ function importUpdatesAndStats(data) {
     // first, display the updateLog
     for (connid in data.PeerConnections) {
         var connection = data.PeerConnections[connid];
-        var container = createContainer(connection, connid);
+        var container = createContainers(connid, connection.url);
         document.getElementById('tables').appendChild(container);
 
         connection.updateLog.forEach(function(event) {
