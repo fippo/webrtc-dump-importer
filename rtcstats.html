@@ -159,7 +159,6 @@ function importUpdatesAndStats(data) {
                     if (stats[id].type === 'localcandidate' || stats[id].type === 'remotecandidate') return;
                     Object.keys(stats[id]).forEach(function(name) {
                         if (name === 'timestamp') return;
-                        if (name === 'ssrc') return;
                         if (name === 'googMinPlayoutDelayMs') stats[id][name] = parseInt(stats[id][name], 10);
                         if (typeof stats[id][name] === 'number') {
                             if (!series[id]) series[id] = {};
