@@ -31,7 +31,7 @@
 
         <script>
 function doImport(evt) {
-  event.target.disabled = 'disabled';
+  evt.target.disabled = 'disabled';
   var files = evt.target.files;
   var reader = new FileReader();
   reader.onload = (function(file) {
