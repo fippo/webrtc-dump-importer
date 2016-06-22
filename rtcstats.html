@@ -81,6 +81,27 @@ function createContainers(connid, url) {
     return container;
 }
 
+function processGUM(data) {
+    var container = document.createElement('div');
+    container.style.margin = '10px';
+
+    var table = document.createElement('table');
+    var head = document.createElement('tr');
+    table.appendChild(head);
+
+    var el;
+    el = document.createElement('th');
+    el.innerText = 'getUserMedia';
+    head.appendChild(el);
+
+    container.appendChild(table);
+
+    document.getElementById('tables').appendChild(container);
+    data.forEach(function(event) {
+        processTraceEvent(table, event); // abusing the peerconnection trace event processor...
+    });
+}
+
 function processTraceEvent(table, event) {
     var row = document.createElement('tr');
     el = document.createElement('td');
@@ -136,6 +157,7 @@ function importUpdatesAndStats(data) {
     var connection;
     var connid, reportname, statname;
 
+    processGUM(data.getUserMedia);
     for (connid in data.peerConnections) {
         connection = data.peerConnections[connid];
         var container = createContainers(connid, data.url);
