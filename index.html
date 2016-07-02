@@ -44,6 +44,7 @@ function doImport(evt) {
 }
 
 function createContainers(connid, url) {
+    var el;
     var container = document.createElement('div');
     container.style.margin = '10px';
 
@@ -57,11 +58,41 @@ function createContainers(connid, url) {
     iceConnectionState.textContent = 'ICE connection state:';
     container.appendChild(iceConnectionState);
 
-    var table = document.createElement('table');
+    // for ice candidates
+    var ice = document.createElement('table');
     var head = document.createElement('tr');
+    ice.appendChild(head);
+
+    el = document.createElement('td');
+    el.innerText = 'Local address';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'Remote address';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'Requests sent';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'Responses received';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'Requests received';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'Responses sent';
+    head.appendChild(el);
+
+    container.appendChild(ice);
+
+    var table = document.createElement('table');
+    head = document.createElement('tr');
     table.appendChild(head);
 
-    var el;
     el = document.createElement('th');
     el.innerText = 'connection ' + connid;
     head.appendChild(el);
@@ -75,7 +106,8 @@ function createContainers(connid, url) {
     containers[connid] = {
         updateLog: table,
         iceConnectionState: iceConnectionState,
-        signalingState: signalingState
+        signalingState: signalingState,
+        candidates: ice 
     };
 
     return container;
@@ -83,7 +115,7 @@ function createContainers(connid, url) {
 
 function processTraceEvent(table, event) {
     var row = document.createElement('tr');
-    el = document.createElement('td');
+    var el = document.createElement('td');
     el.setAttribute('nowrap', '');
     el.innerText = event.time;
     row.appendChild(el);
@@ -132,7 +164,9 @@ var graphs = {};
 var containers = {};
 function importUpdatesAndStats(data) {
     var connection;
-    var connid, reportname, statname;
+    var connid, reportname, stat;
+    var t, comp;
+    var stats;
 
     // FIXME: also display GUM calls (can they be correlated to addStream?)
 
@@ -157,6 +191,68 @@ function importUpdatesAndStats(data) {
                 containers[connid].signalingState.textContent += ' => ' + event.value;
             }
         });
+        var stun = {};
+        for (reportname in connection.stats) {
+            if (reportname.indexOf('Conn-') === 0) {
+                t = reportname.split('-');
+                comp = t.pop();
+                t = t.join('-');
+                if (!stun[t]) stun[t] = {};
+                stats = JSON.parse(connection.stats[reportname].values);
+                switch(comp) {
+                case 'requestsSent':
+                case 'consentRequestsSent':
+                case 'responsesSent':
+                case 'requestsReceived':
+                case 'responsesReceived':
+                case 'googLocalAddress':
+                case 'googRemoteAddress':
+                    //console.log(t, comp, connection.stats[reportname]);
+                    stun[t][comp] = stats[stats.length - 1];
+                    break;
+                default:
+                    //console.log(reportname, comp, stats);
+                }
+            }
+        }
+        console.log(stun);
+        for (t in stun) {
+            console.log(t, stun[t]);
+            var row = document.createElement('tr');
+            var el;
+
+            el = document.createElement('td');
+            el.innerText = stun[t].googLocalAddress;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].googRemoteAddress;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].requestsSent;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].responsesReceived;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].requestsReceived;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].responsesSent;
+            row.appendChild(el);
+
+            /*
+            el = document.createElement('td');
+            el.innerText = stun[t].consentRequestsSent;
+            row.appendChild(el);
+            */
+
+            containers[connid].candidates.appendChild(row);
+        }
     }
 
     // then, update the stats displays
@@ -165,10 +261,10 @@ function importUpdatesAndStats(data) {
         graphs[connid] = {};
         var reportobj = {};
         for (reportname in connection.stats) {
-            var t = reportname.split('-');
-            var comp = t.pop();
+            t = reportname.split('-');
+            comp = t.pop();
 
-            var stat = t.join('-');
+            stat = t.join('-');
             if (!reportobj.hasOwnProperty(stat)) {
                 reportobj[stat] = [];
             }
