@@ -8,25 +8,35 @@
         -->
         <script src="//code.highcharts.com/highcharts.js"></script>
         <style>
-            body, body svg text {
-                font-family: monospace;
-            }
-            details[open] pre {
-                padding-left: 10px;
-                padding-bottom: 10px;
-            }
-            details[open] summary {
-                color: blue;
-            }
-            details.host summary:after {
-                content: ' (host)';
-            }
-            details.relay summary:after {
-                content: ' (relay)';
-            }
-            details.srflx summary:after {
-                content: ' (srflx)'
-            }
+body, body svg text {
+    font-family: monospace;
+}
+details[open] pre {
+    padding-left: 10px;
+    padding-bottom: 10px;
+}
+details[open] summary {
+    color: blue;
+}
+details.host summary:after {
+    content: ' (host)';
+}
+details.relay summary:after {
+    content: ' (relay)';
+}
+details.srflx summary:after {
+    content: ' (srflx)'
+}
+
+.candidatepairtable {
+    text-align: center;
+}
+.candidatepairtable td {
+    background-color: #ddd;
+    padding: 5px;
+}
+    ice.style['background-color'] = '#ddd';
+    ice.style['text-align'] = 'center';
         </style>
 
         <script>
@@ -60,6 +70,7 @@ function createContainers(connid, url) {
 
     // for ice candidates
     var ice = document.createElement('table');
+    ice.className = 'candidatepairtable';
     var head = document.createElement('tr');
     ice.appendChild(head);
 
@@ -68,7 +79,15 @@ function createContainers(connid, url) {
     head.appendChild(el);
 
     el = document.createElement('td');
+    el.innerText = 'Local type';
+    head.appendChild(el);
+
+    el = document.createElement('td');
     el.innerText = 'Remote address';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'Remote type';
     head.appendChild(el);
 
     el = document.createElement('td');
@@ -85,6 +104,10 @@ function createContainers(connid, url) {
 
     el = document.createElement('td');
     el.innerText = 'Responses sent';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'Active Connection';
     head.appendChild(el);
 
     container.appendChild(ice);
@@ -207,6 +230,9 @@ function importUpdatesAndStats(data) {
                 case 'responsesReceived':
                 case 'googLocalAddress':
                 case 'googRemoteAddress':
+                case 'googLocalCandidateType':
+                case 'googRemoteCandidateType':
+                case 'googActiveConnection':
                     //console.log(t, comp, connection.stats[reportname]);
                     stun[t][comp] = stats[stats.length - 1];
                     break;
@@ -226,7 +252,15 @@ function importUpdatesAndStats(data) {
             row.appendChild(el);
 
             el = document.createElement('td');
+            el.innerText = stun[t].googLocalCandidateType;
+            row.appendChild(el);
+
+            el = document.createElement('td');
             el.innerText = stun[t].googRemoteAddress;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].googRemoteCandidateType;
             row.appendChild(el);
 
             el = document.createElement('td');
@@ -245,6 +279,9 @@ function importUpdatesAndStats(data) {
             el.innerText = stun[t].responsesSent;
             row.appendChild(el);
 
+            el = document.createElement('td');
+            el.innerText = stun[t].googActiveConnection;
+            row.appendChild(el);
             /*
             el = document.createElement('td');
             el.innerText = stun[t].consentRequestsSent;
