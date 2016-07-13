@@ -58,15 +58,11 @@ function createContainers(connid, url) {
     var container = document.createElement('div');
     container.style.margin = '10px';
 
-    // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
-    var signalingState = document.createElement('div');
-    signalingState.id = 'signalingstate_' + connid;
-    signalingState.textContent = 'Signaling state:';
-    container.appendChild(signalingState);
-    var iceConnectionState = document.createElement('div');
-    iceConnectionState.id = 'iceconnectionstate_' + connid;
-    iceConnectionState.textContent = 'ICE connection state:';
-    container.appendChild(iceConnectionState);
+    var url = document.createElement('div');
+    container.appendChild(url);
+
+    var configuration = document.createElement('div');
+    container.appendChild(configuration);
 
     // for ice candidates
     var ice = document.createElement('table');
@@ -126,11 +122,23 @@ function createContainers(connid, url) {
 
     container.appendChild(table);
 
+    // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
+    var signalingState = document.createElement('div');
+    signalingState.id = 'signalingstate_' + connid;
+    signalingState.textContent = 'Signaling state:';
+    container.appendChild(signalingState);
+    var iceConnectionState = document.createElement('div');
+    iceConnectionState.id = 'iceconnectionstate_' + connid;
+    iceConnectionState.textContent = 'ICE connection state:';
+    container.appendChild(iceConnectionState);
+
     containers[connid] = {
         updateLog: table,
         iceConnectionState: iceConnectionState,
         signalingState: signalingState,
-        candidates: ice 
+        candidates: ice,
+        url: url,
+        configuration: configuration
     };
 
     return container;
@@ -197,6 +205,10 @@ function importUpdatesAndStats(data) {
     for (connid in data.PeerConnections) {
         var connection = data.PeerConnections[connid];
         var container = createContainers(connid, connection.url);
+
+        containers[connid].url.innerText = connection.url;
+        containers[connid].configuration.innerText = JSON.stringify(connection.rtcConfiguration, null, ' ');
+
         document.getElementById('tables').appendChild(container);
 
         connection.updateLog.forEach(function(event) {
