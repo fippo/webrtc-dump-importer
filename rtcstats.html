@@ -457,7 +457,6 @@ function doImport(evt) {
   var reader = new FileReader();
   reader.onload = (function(file) {
     return function(e) {
-      console.log('newline?', e.target.result.indexOf('\n'));
       if (e.target.result.indexOf('\n') === -1) {
         // old format
         thelog = JSON.parse(e.target.result);
@@ -654,7 +653,10 @@ function importUpdatesAndStats(data) {
                     if (stats[id].type === 'localcandidate' || stats[id].type === 'remotecandidate') return;
                     Object.keys(stats[id]).forEach(function(name) {
                         if (name === 'timestamp') return;
-                        if (name === 'googMinPlayoutDelayMs') stats[id][name] = parseInt(stats[id][name], 10);
+                        //if (name === 'googMinPlayoutDelayMs') stats[id][name] = parseInt(stats[id][name], 10);
+                        if (stats[id].type === 'ssrc' && !isNaN(parseInt(stats[id][name], 10))) {
+                            stats[id][name] = parseInt(stats[id][name], 10);
+                        }
                         if (typeof stats[id][name] === 'number') {
                             if (!series[id]) series[id] = {};
                             if (!series[id][name]) series[id][name] = [];
