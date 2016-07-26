@@ -629,6 +629,7 @@ function importUpdatesAndStats(data) {
     var connection;
     var connid, reportname, statname;
 
+    document.getElementById('userAgent').innerText = data.userAgent;
     processGUM(data.getUserMedia);
     for (connid in data.peerConnections) {
         connection = data.peerConnections[connid];
@@ -713,6 +714,7 @@ function importUpdatesAndStats(data) {
     </head>
     <body>
         <form><input type="file" onchange="doImport(event)"></form>
+        <div><b>User Agent:</b><span id="userAgent"></span></div>
         <div id="tables">
         </div>
         <div id="container" style="min-width: 95%; height: 400px; margin: 0 auto">
