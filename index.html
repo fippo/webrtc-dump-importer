@@ -64,6 +64,16 @@ function createContainers(connid, url) {
     var configuration = document.createElement('div');
     container.appendChild(configuration);
 
+    // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
+    var signalingState = document.createElement('div');
+    signalingState.id = 'signalingstate_' + connid;
+    signalingState.textContent = 'Signaling state:';
+    container.appendChild(signalingState);
+    var iceConnectionState = document.createElement('div');
+    iceConnectionState.id = 'iceconnectionstate_' + connid;
+    iceConnectionState.textContent = 'ICE connection state:';
+    container.appendChild(iceConnectionState);
+
     // for ice candidates
     var ice = document.createElement('table');
     ice.className = 'candidatepairtable';
@@ -117,20 +127,9 @@ function createContainers(connid, url) {
     head.appendChild(el);
 
     el = document.createElement('th');
-    el.innerText = url;
     head.appendChild(el);
 
     container.appendChild(table);
-
-    // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
-    var signalingState = document.createElement('div');
-    signalingState.id = 'signalingstate_' + connid;
-    signalingState.textContent = 'Signaling state:';
-    container.appendChild(signalingState);
-    var iceConnectionState = document.createElement('div');
-    iceConnectionState.id = 'iceconnectionstate_' + connid;
-    iceConnectionState.textContent = 'ICE connection state:';
-    container.appendChild(iceConnectionState);
 
     containers[connid] = {
         updateLog: table,
@@ -207,7 +206,7 @@ function importUpdatesAndStats(data) {
         var container = createContainers(connid, connection.url);
 
         containers[connid].url.innerText = connection.url;
-        containers[connid].configuration.innerText = JSON.stringify(connection.rtcConfiguration, null, ' ');
+        containers[connid].configuration.innerText = 'Configuration: ' + JSON.stringify(connection.rtcConfiguration, null, ' ');
 
         document.getElementById('tables').appendChild(container);
 
