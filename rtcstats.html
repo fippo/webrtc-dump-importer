@@ -661,7 +661,7 @@ function processConnections(connectionIds, data) {
                     if (typeof stats[id][name] === 'number') {
                         if (!series[id]) series[id] = {};
                         if (!series[id][name]) series[id][name] = [];
-                        series[id][name].push([new Date(connection[i].time), stats[id][name]]);
+                        series[id][name].push([new Date(connection[i].time).getTime(), stats[id][name]]);
                     }
                 });
             });
