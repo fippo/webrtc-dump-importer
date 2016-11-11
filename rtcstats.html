@@ -658,6 +658,7 @@ function importUpdatesAndStats(data) {
                         if (stats[id].type === 'ssrc' && !isNaN(parseInt(stats[id][name], 10))) {
                             stats[id][name] = parseInt(stats[id][name], 10);
                         }
+                        if (stats[id].type === 'ssrc' && name === 'ssrc') return; // ignore ssrc on ssrc reports.
                         if (typeof stats[id][name] === 'number') {
                             if (!series[id]) series[id] = {};
                             if (!series[id][name]) series[id][name] = [];
