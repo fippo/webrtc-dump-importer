@@ -625,91 +625,92 @@ function processTraceEvent(table, event) {
 
 var graphs = {};
 var containers = {};
-function importUpdatesAndStats(data) {
-    var connection;
-    var connid, reportname, statname;
+function processConnections(connectionIds, data) {
+    var connid = connectionIds.shift();
+    if (!connid) return;
+    window.setTimeout(processConnections, 0, connectionIds, data);
 
-    document.getElementById('userAgent').innerText = data.userAgent;
-    processGUM(data.getUserMedia);
-    for (connid in data.peerConnections) {
-        connection = data.peerConnections[connid];
-        var container = createContainers(connid, data.url);
-        document.getElementById('tables').appendChild(container);
+    var reportname, statname;
+    var connection = data.peerConnections[connid];
+    var container = createContainers(connid, data.url);
+    document.getElementById('tables').appendChild(container);
 
-        for (var i = 0; i < connection.length; i++) {
-            if (connection[i].type !== 'getStats' && connection[i].type !== 'getstats') {
-                processTraceEvent(containers[connid].updateLog, connection[i]);
-            }
+    for (var i = 0; i < connection.length; i++) {
+        if (connection[i].type !== 'getStats' && connection[i].type !== 'getstats') {
+            processTraceEvent(containers[connid].updateLog, connection[i]);
         }
     }
 
     // then, update the stats displays
-    for (connid in data.peerConnections) {
-        connection = data.peerConnections[connid];
-        var series = {};
-        for (var i = 0; i < connection.length; i++) {
-            if (connection[i].type === 'getStats' || connection[i].type === 'getstats') {
-                var stats = connection[i].value;
-                Object.keys(stats).forEach(function(id) {
-                    if (stats[id].type === 'localcandidate' || stats[id].type === 'remotecandidate') return;
-                    Object.keys(stats[id]).forEach(function(name) {
-                        if (name === 'timestamp') return;
-                        //if (name === 'googMinPlayoutDelayMs') stats[id][name] = parseInt(stats[id][name], 10);
-                        if (stats[id].type === 'ssrc' && !isNaN(parseInt(stats[id][name], 10))) {
-                            stats[id][name] = parseInt(stats[id][name], 10);
-                        }
-                        if (stats[id].type === 'ssrc' && name === 'ssrc') return; // ignore ssrc on ssrc reports.
-                        if (typeof stats[id][name] === 'number') {
-                            if (!series[id]) series[id] = {};
-                            if (!series[id][name]) series[id][name] = [];
-                            series[id][name].push([new Date(connection[i].time), stats[id][name]]);
-                        }
-                    });
-                });
-            }
-        }
-        graphs[connid] = {};
-        var reportobj = {};
-        for (reportname in series) {
-            /*
-                series.push({
-                    name: report[0],
-                    data: report[1]
-                });
-                */
-
-            var d = document.createElement('div');
-            d.id = 'chart_' + Date.now();
-            document.getElementById('container').appendChild(d);
-            console.log(reportname, series[reportname]);
-            var da = [];
-            Object.keys(series[reportname]).forEach(function(name) {
-                da.push({
-                    name: name,
-                    data: series[reportname][name]
+    var series = {};
+    for (var i = 0; i < connection.length; i++) {
+        if (connection[i].type === 'getStats' || connection[i].type === 'getstats') {
+            var stats = connection[i].value;
+            Object.keys(stats).forEach(function(id) {
+                if (stats[id].type === 'localcandidate' || stats[id].type === 'remotecandidate') return;
+                Object.keys(stats[id]).forEach(function(name) {
+                    if (name === 'timestamp') return;
+                    //if (name === 'googMinPlayoutDelayMs') stats[id][name] = parseInt(stats[id][name], 10);
+                    if (stats[id].type === 'ssrc' && !isNaN(parseInt(stats[id][name], 10))) {
+                        stats[id][name] = parseInt(stats[id][name], 10);
+                    }
+                    if (stats[id].type === 'ssrc' && name === 'ssrc') return; // ignore ssrc on ssrc reports.
+                    if (typeof stats[id][name] === 'number') {
+                        if (!series[id]) series[id] = {};
+                        if (!series[id][name]) series[id][name] = [];
+                        series[id][name].push([new Date(connection[i].time), stats[id][name]]);
+                    }
                 });
             });
-            var graph = new Highcharts.Chart({
-                title: {
-                    text: connid + ' ' + reportname
-                },
-                xAxis: {
-                    type: 'datetime'
-                },
-                /*
-                yAxis: {
-                    min: 0
-                },
-                */
-                chart: {
-                    zoomType: 'x',
-                    renderTo : d.id
-                },
-                series: da
-            });
-            graphs[connid][reportname] = graph;
         }
     }
+    graphs[connid] = {};
+    var reportobj = {};
+    for (reportname in series) {
+        /*
+            series.push({
+                name: report[0],
+                data: report[1]
+            });
+            */
+
+        var d = document.createElement('div');
+        d.id = 'chart_' + Date.now();
+        document.getElementById('container').appendChild(d);
+        console.log(reportname, series[reportname]);
+        var da = [];
+        Object.keys(series[reportname]).forEach(function(name) {
+            da.push({
+                name: name,
+                data: series[reportname][name]
+            });
+        });
+        var graph = new Highcharts.Chart({
+            title: {
+                text: connid + ' ' + reportname
+            },
+            xAxis: {
+                type: 'datetime'
+            },
+            /*
+            yAxis: {
+                min: 0
+            },
+            */
+            chart: {
+                zoomType: 'x',
+                renderTo : d.id
+            },
+            series: da
+        });
+        graphs[connid][reportname] = graph;
+    }
+}
+
+function importUpdatesAndStats(data) {
+    document.getElementById('userAgent').innerText = data.userAgent;
+    processGUM(data.getUserMedia);
+    window.setTimeout(processConnections, 0, Object.keys(data.peerConnections), data);
 }
         </script>
     </head>
