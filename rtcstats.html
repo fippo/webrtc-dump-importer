@@ -233,6 +233,8 @@ function mangle(stats) {
             parseInt(standardStats.googAvailableSendBandwidth, 10);
         standardStats.availableIncomingBitrate = 1.0 *
             parseInt(standardStats.googAvailableReceiveBandwidth, 10);
+        // not really standard...
+        standardStats.googBucketDelay = parseInt(standardStats.googBucketDelay, 10);
         break;
       default:
         break;
