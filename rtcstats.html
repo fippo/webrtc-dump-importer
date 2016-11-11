@@ -661,7 +661,7 @@ function importUpdatesAndStats(data) {
                         if (typeof stats[id][name] === 'number') {
                             if (!series[id]) series[id] = {};
                             if (!series[id][name]) series[id][name] = [];
-                            series[id][name].push(stats[id][name]);
+                            series[id][name].push([new Date(connection[i].time), stats[id][name]]);
                         }
                     });
                 });
@@ -692,10 +692,10 @@ function importUpdatesAndStats(data) {
                 title: {
                     text: connid + ' ' + reportname
                 },
-                /*
                 xAxis: {
                     type: 'datetime'
                 },
+                /*
                 yAxis: {
                     min: 0
                 },
