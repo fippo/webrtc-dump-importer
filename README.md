@@ -1,8 +1,10 @@
 ## Import webrtc-internal dumps
 Chrome webrtc-internals page is tremendously useful but lacks the ability to reimport the exported dumps.
-My efforts to fix this in chrome were are bitrotting in the chromium tracker for two years now.
+My efforts to fix this in chrome were bitrotting in the chromium tracker for two years. But hey, I can just make a web page to do it. And use a [better library for graphs](http://www.highcharts.com/) that adds the ability to zoom into regions of interest.
 
-But heck, I can just make a web page to do it. And use a [better library for graphs](http://www.highcharts.com/) that adds the ability to zoom into regions of interest.
+## What do all these parameters mean?
+
+I teamed up with Tsahi to describe the parameters from webrtc-internals [as a series of blog posts](http://testrtc.com/webrtc-internals-parameters/)
 
 ## Highlighting sections in a graph
 There is a simple API to highlight portions of the graph.
