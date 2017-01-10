@@ -27,6 +27,15 @@
             details.srflx summary:after {
                 content: ' (srflx)'
             }
+.candidatepairtable {
+    text-align: center;
+}
+.candidatepairtable td {
+    background-color: #ddd;
+    padding: 5px;
+}
+    ice.style['background-color'] = '#ddd';
+    ice.style['text-align'] = 'center';
         </style>
 
         <script>
@@ -534,6 +543,52 @@ function createContainers(connid, url) {
     iceConnectionState.textContent = 'ICE connection state:';
     container.appendChild(iceConnectionState);
 
+    // for ice candidates
+    if (1) {
+        var ice = document.createElement('table');
+        ice.className = 'candidatepairtable';
+        var head = document.createElement('tr');
+        ice.appendChild(head);
+
+        el = document.createElement('td');
+        el.innerText = 'Local address';
+        head.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = 'Local type';
+        head.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = 'Remote address';
+        head.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = 'Remote type';
+        head.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = 'Requests sent';
+        head.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = 'Responses received';
+        head.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = 'Requests received';
+        head.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = 'Responses sent';
+        head.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = 'Active Connection';
+        head.appendChild(el);
+
+        container.appendChild(ice);
+    }
+
     var table = document.createElement('table');
     var head = document.createElement('tr');
     table.appendChild(head);
@@ -552,7 +607,8 @@ function createContainers(connid, url) {
     containers[connid] = {
         updateLog: table,
         iceConnectionState: iceConnectionState,
-        signalingState: signalingState
+        signalingState: signalingState,
+        candidates: ice,
     };
 
     return container;
@@ -648,7 +704,13 @@ function processConnections(connectionIds, data) {
 
     // then, update the stats displays
     var series = {};
+    var connectedOrCompleted = false;
+    var firstStats;
+    var lastStats;
     for (var i = 0; i < connection.length; i++) {
+        if (connection[i].type === 'oniceconnectionstatechange' && (connection[i].value === 'connected' || connection[i].value === 'completed')) {
+            connectedOrCompleted = true;
+        }
         if (connection[i].type === 'getStats' || connection[i].type === 'getstats') {
             var stats = connection[i].value;
             Object.keys(stats).forEach(function(id) {
@@ -668,7 +730,75 @@ function processConnections(connectionIds, data) {
                 });
             });
         }
+        if (connection[i].type === 'getStats' || connection[i].type === 'getstats') {
+            if (!firstStats && connectedOrCompleted) firstStats = connection[i].value;
+            lastStats = connection[i].value;
+        }
     }
+    var interestingStats = firstStats; // might be last stats which contain more counters
+    if (interestingStats) {
+        var stun = [];
+        var t;
+        for (reportname in interestingStats) {
+            if (reportname.indexOf('Conn-') === 0) {
+                t = reportname.split('-');
+                comp = t.pop();
+                t = t.join('-');
+                stats = interestingStats[reportname];
+                console.log('STATS', stats, comp);
+                stun.push(stats);
+            }
+        }
+        for (t in stun) {
+            console.log('STUN', t, stun[t]);
+            var row = document.createElement('tr');
+            var el;
+
+            el = document.createElement('td');
+            el.innerText = stun[t].googLocalAddress;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].googLocalCandidateType;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].googRemoteAddress;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].googRemoteCandidateType;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].requestsSent;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].responsesReceived;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].requestsReceived;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].responsesSent;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].googActiveConnection;
+            row.appendChild(el);
+            /*
+            el = document.createElement('td');
+            el.innerText = stun[t].consentRequestsSent;
+            row.appendChild(el);
+            */
+
+            containers[connid].candidates.appendChild(row);
+        }
+    }
+
     graphs[connid] = {};
     var reportobj = {};
     for (reportname in series) {
@@ -682,7 +812,7 @@ function processConnections(connectionIds, data) {
         var d = document.createElement('div');
         d.id = 'chart_' + Date.now();
         document.getElementById('container').appendChild(d);
-        console.log(reportname, series[reportname]);
+        //console.log(reportname, series[reportname]);
         var da = [];
         Object.keys(series[reportname]).forEach(function(name) {
             da.push({
