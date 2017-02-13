@@ -649,7 +649,11 @@ function processTraceEvent(table, event) {
     details.appendChild(el);
 
     el = document.createElement('pre');
-    el.innerText = JSON.stringify(event.value, null, ' ');
+    if (['createOfferOnSuccess', 'createAnswerOnSuccess', 'setRemoteDescription', 'setLocalDescription'].indexOf(event.type) !== -1) {
+        el.innerText = 'SDP ' + event.value.type + ':' + event.value.sdp;
+    } else {
+        el.innerText = JSON.stringify(event.value, null, ' ');
+    }
     details.appendChild(el);
 
     el = document.createElement('td');
@@ -735,7 +739,7 @@ function processConnections(connectionIds, data) {
             lastStats = connection[i].value;
         }
     }
-    var interestingStats = firstStats; // might be last stats which contain more counters
+    var interestingStats = lastStats; // might be last stats which contain more counters
     if (interestingStats) {
         var stun = [];
         var t;
