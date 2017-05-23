@@ -484,7 +484,7 @@ function doImport(evt) {
         lines.forEach(function(line) {
             if (line.length) {
                 var data = JSON.parse(line);
-                var time = new Date(data.time)
+                var time = new Date(data.time || data[data.length - 1]);
                 delete data.time;
                 switch(data[0]) {
                 case 'getUserMedia':
