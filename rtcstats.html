@@ -224,6 +224,13 @@ function mangle(stats) {
         // backfilled later from videoBWE.
         standardStats.availableOutgoingBitrate = 0.0;
         standardStats.availableIncomingBitrate = 0.0;
+
+        standardStats.requestsSent >>>= 0; 
+        standardStats.responsesReceived >>>= 0; 
+
+        standardStats.requestsReceived >>>= 0;
+        standardStats.responsesSent >>>= 0;
+        standardStats.consentRequestsSent >>>= 0;
         break;
       case 'googComponent':
         // additional RTCTransportStats created later since we
@@ -749,7 +756,6 @@ function processConnections(connectionIds, data) {
                 comp = t.pop();
                 t = t.join('-');
                 stats = interestingStats[reportname];
-                console.log('STATS', stats, comp);
                 stun.push(stats);
             }
         }
