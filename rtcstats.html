@@ -183,6 +183,9 @@ function mangle(stats) {
           // This is the RTCP RTT.
           standardStats.roundTripTime = parseInt(standardStats.googRtt, 10);
         }
+        if (standardStats.googEncodeUsagePercent) {
+          standardStats.googEncodeUsagePercent = parseInt(standardStats.googEncodeUsagePercent, 10);
+        }
         break;
       case 'localcandidate':
       case 'remotecandidate':
