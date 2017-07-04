@@ -173,9 +173,12 @@ function processTraceEvent(table, event) {
         switch(event.value) {
         case 'ICEConnectionStateConnected':
         case 'ICEConnectionStateCompleted':
+        case 'kICEConnectionStateConnected':
+        case 'kICEConnectionStateCompleted':
             row.style.backgroundColor = 'green';
             break;
         case 'ICEConnectionStateFailed':
+        case 'kICEConnectionStateFailed':
             row.style.backgroundColor = 'red';
             break;
         }
