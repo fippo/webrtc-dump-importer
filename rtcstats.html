@@ -431,6 +431,22 @@ function processConnections(connectionIds, data) {
             series: da
         });
         graphs[connid][reportname] = graph;
+
+        // draw checkbox to turn off everything
+        ((reportname, graph) => {
+            var checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            document.getElementById('container').appendChild(checkbox);
+            var label = document.createElement('label');
+            label.innerText = 'Turn on/off all data series in ' + connid + ' ' + reportname;
+            document.getElementById('container').appendChild(label);
+            checkbox.onchange = function() {
+                graph.series.forEach(function(series) {
+                    series.setVisible(!checkbox.checked, false);
+                });
+                graph.redraw();
+            };
+        })(reportname, graph);
     }
 }
 
