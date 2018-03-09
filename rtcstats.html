@@ -316,7 +316,10 @@ function processConnections(connectionIds, data) {
                     }
                     if (stats[id].type === 'ssrc' && name === 'ssrc') return; // ignore ssrc on ssrc reports.
                     if (typeof stats[id][name] === 'number') {
-                        if (!series[id]) series[id] = {};
+                        if (!series[id]) {
+                            series[id] = {};
+                            series[id].type = stats[id].type;
+                        }
                         if (!series[id][name]) series[id][name] = [];
                         series[id][name].push([new Date(connection[i].time).getTime(), stats[id][name]]);
                     }
@@ -342,7 +345,7 @@ function processConnections(connectionIds, data) {
             }
         }
         for (t in stun) {
-            console.log('STUN', t, stun[t]);
+            // console.log('STUN', t, stun[t]);
             var row = document.createElement('tr');
             var el;
 
@@ -394,19 +397,19 @@ function processConnections(connectionIds, data) {
     graphs[connid] = {};
     var reportobj = {};
     for (reportname in series) {
-        /*
-            series.push({
-                name: report[0],
-                data: report[1]
-            });
-            */
+        var graphType = series[reportname].type;
 
-        var d = document.createElement('div');
-        d.id = 'chart_' + Date.now();
-        document.getElementById('container').appendChild(d);
-        //console.log(reportname, series[reportname]);
+        var container = document.createElement('div');
+        container.classList.add('webrtc-' + graphType);
+        document.getElementById('container').appendChild(container);
+
+        var chartContainer = document.createElement('div');
+        chartContainer.id = 'chart_' + Date.now();
+        container.appendChild(chartContainer);
+
         var da = [];
         Object.keys(series[reportname]).forEach(function(name) {
+            if (name === 'type') return;
             da.push({
                 name: name,
                 data: series[reportname][name]
@@ -414,7 +417,7 @@ function processConnections(connectionIds, data) {
         });
         var graph = new Highcharts.Chart({
             title: {
-                text: connid + ' ' + reportname
+                text: connid + ' type=' + graphType + ' ' + reportname
             },
             xAxis: {
                 type: 'datetime'
@@ -426,27 +429,27 @@ function processConnections(connectionIds, data) {
             */
             chart: {
                 zoomType: 'x',
-                renderTo : d.id
+                renderTo : chartContainer.id
             },
             series: da
         });
         graphs[connid][reportname] = graph;
 
         // draw checkbox to turn off everything
-        ((reportname, graph) => {
+        ((reportname, container, graph) => {
             var checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
-            document.getElementById('container').appendChild(checkbox);
+            container.appendChild(checkbox);
             var label = document.createElement('label');
             label.innerText = 'Turn on/off all data series in ' + connid + ' ' + reportname;
-            document.getElementById('container').appendChild(label);
+            container.appendChild(label);
             checkbox.onchange = function() {
                 graph.series.forEach(function(series) {
                     series.setVisible(!checkbox.checked, false);
                 });
                 graph.redraw();
             };
-        })(reportname, graph);
+        })(reportname, container, graph);
     }
 }
 
