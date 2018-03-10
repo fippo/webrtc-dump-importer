@@ -1,0 +1,207 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Import webrtc-internals dumps -- just BWE</title>
+        <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+        <!-- highcharts is used under the terms of
+            http://shop.highsoft.com/faq/non-commercial
+        -->
+        <script src="https://code.highcharts.com/highcharts.js"></script>
+        <style>
+            body, body svg text {
+                font-family: monospace;
+            }
+        </style>
+        <script src="mangle.js"></script>
+        <script>
+function decompress(baseStats, newStats) {
+  Object.keys(newStats).forEach(function(id) {
+    if (!baseStats[id]) {
+      baseStats[id] = newStats[id];
+    } else {
+      var report = newStats[id];
+      Object.keys(report).forEach(function(name) {
+        baseStats[id][name] = report[name];
+      });
+    }
+  });
+  return baseStats;
+}
+
+function doImport(evt) {
+  evt.target.disabled = 'disabled';
+  var files = evt.target.files;
+  var reader = new FileReader();
+  reader.onload = (function(file) {
+    return function(e) {
+      if (e.target.result.indexOf('\n') === -1) {
+        // old format
+        thelog = JSON.parse(e.target.result);
+      } else {
+        // new format, multiple lines
+        var baseStats = {};
+        var lines = e.target.result.split('\n');
+        var client = JSON.parse(lines.shift());
+        client.peerConnections = {};
+        client.getUserMedia = [];
+        lines.forEach(function(line) {
+            if (line.length) {
+                var data = JSON.parse(line);
+                var time = new Date(data.time || data[data.length - 1]);
+                delete data.time;
+                switch(data[0]) {
+                case 'getUserMedia':
+                case 'getUserMediaOnSuccess':
+                case 'getUserMediaOnFailure':
+                case 'navigator.mediaDevices.getUserMedia':
+                case 'navigator.mediaDevices.getUserMediaOnSuccess':
+                case 'navigator.mediaDevices.getUserMediaOnFailure':
+                    client.getUserMedia.push({
+                        time: time,
+                        type: data[0],
+                        value: data[2]
+                    });
+                    break;
+                default:
+                    if (!client.peerConnections[data[1]]) {
+                        client.peerConnections[data[1]] = [];
+                        baseStats[data[1]] = {};
+                    }
+                    if (data[0] === 'getstats') { // delta-compressed
+                        data[2] = decompress(baseStats[data[1]], data[2]);
+                        baseStats[data[1]] = JSON.parse(JSON.stringify(data[2]));
+                    }
+                    if (data[0] === 'getStats' || data[0] === 'getstats') {
+                        data[2] = mangle(data[2]);
+                        data[0] = 'getStats';
+                    }
+                    client.peerConnections[data[1]].push({
+                        time: time,
+                        type: data[0],
+                        value: data[2]
+                    });
+                    break;
+                }
+            }
+        });
+        thelog = client;
+      }
+      importUpdatesAndStats(thelog);
+    };
+  })(files[0]);
+  reader.readAsText(files[0]);
+}
+
+function processConnections(connectionIds, data) {
+    var connid = connectionIds.shift();
+    if (!connid) return;
+    window.setTimeout(processConnections, 0, connectionIds, data);
+
+    var reportname, statname;
+    var connection = data.peerConnections[connid];
+
+    // then, update the stats displays
+    var series = {};
+    var connectedOrCompleted = false;
+    var firstStats;
+    var lastStats;
+    for (var i = 0; i < connection.length; i++) {
+        if (connection[i].type === 'oniceconnectionstatechange' && (connection[i].value === 'connected' || connection[i].value === 'completed')) {
+            connectedOrCompleted = true;
+        }
+        if (connection[i].type === 'getStats' || connection[i].type === 'getstats') {
+            var stats = connection[i].value;
+            Object.keys(stats).forEach(function(id) {
+                var type = stats[id].type;
+                if (!(type === 'ssrc' || type === 'inbound-rtp' || type === 'outbound-rtp')) return;
+                Object.keys(stats[id]).forEach(function(name) {
+                    if (!(name === 'bytesSent' || name === 'bytesReceived')) return;
+                    if (stats[id].type === 'ssrc' && !isNaN(parseInt(stats[id][name], 10))) {
+                        stats[id][name] = parseInt(stats[id][name], 10);
+                    }
+                    if (typeof stats[id][name] === 'number') {
+                        if (!series[id]) series[id] = {};
+                        if (!series[id][name]) {
+                            series[id][name] = [];
+                        }
+                        var currentTime = new Date(connection[i].time).getTime();
+                        var currentValue = stats[id][name];
+                        series[id][name].push([currentTime, currentValue]);
+                    }
+                });
+            });
+        }
+    }
+
+    Object.keys(series).forEach(function(name) {
+        Object.keys(series[name]).forEach(function(property) {
+            // calculate delta bytes / delta time.
+            var delta = series[name][property].map(function(currentValue, index, values) {
+                if (index === 0) return [currentValue[0], 0];
+                return [currentValue[0], 8 * 1000 * (currentValue[1] - values[index - 1][1]) / (currentValue[0] - values[index - 1][0])];
+            });
+            graph.addSeries({
+                name: connid + '-' + name + '-' + property,
+                data: delta
+            });
+        });
+    });
+
+    if (connid === "null") return;
+
+    var checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = true;
+    document.getElementById('checkboxes').appendChild(checkbox);
+    var label = document.createElement('label');
+    label.innerText = 'Turn on/off all data series from ' + connid;
+    document.getElementById('checkboxes').appendChild(label);
+    checkbox.onchange = function() {
+        graph.series.forEach(function(series) {
+            if (series.name.indexOf(connid) !== 0) return;
+            series.setVisible(checkbox.checked, false);
+        });
+        graph.redraw();
+    };
+}
+
+var graph;
+function importUpdatesAndStats(data) {
+    document.getElementById('userAgent').innerText = data.userAgent;
+
+    var d = document.createElement('div');
+    d.id = 'chart_' + Date.now();
+    document.getElementById('container').appendChild(d);
+    graph = new Highcharts.Chart({
+        title: {
+            text: 'bitrates'
+        },
+        xAxis: {
+            type: 'datetime'
+        },
+        /*
+        yAxis: {
+            min: 0
+        },
+        */
+        chart: {
+            zoomType: 'x',
+            renderTo : d.id
+        },
+        series: []
+    });
+    window.setTimeout(processConnections, 0, Object.keys(data.peerConnections), data);
+}
+
+        </script>
+    </head>
+    <body>
+        <form><input type="file" onchange="doImport(event)"></form>
+        <div><b>User Agent:</b><span id="userAgent"></span></div>
+        <div id="tables">
+        </div>
+        <div id="container" style="min-width: 95%; height: 800px; margin: 0 auto">
+        <div id="checkboxes"></div>
+        </div>
+    </body>
+</html>
