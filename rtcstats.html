@@ -394,10 +394,15 @@ function processConnections(connectionIds, data) {
         }
     }
 
+    var graphTypes = {};
+    var graphSelectorContainer = document.createElement('div');
+    document.getElementById('container').appendChild(graphSelectorContainer);
+
     graphs[connid] = {};
     var reportobj = {};
     for (reportname in series) {
         var graphType = series[reportname].type;
+        graphTypes[graphType] = true;
 
         var container = document.createElement('div');
         container.classList.add('webrtc-' + graphType);
@@ -451,6 +456,30 @@ function processConnections(connectionIds, data) {
             };
         })(reportname, container, graph);
     }
+
+    Object.keys(graphTypes).forEach(function(type) {
+        var checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = true;
+        graphSelectorContainer.appendChild(checkbox);
+
+        var label = document.createElement('label');
+        label.innerText = 'Turn on/off graphs for type=' + type;
+        graphSelectorContainer.appendChild(label);
+
+        var selector = '.webrtc-' + type;
+        checkbox.onchange = function() {
+            if (checkbox.checked) {
+                document.querySelectorAll(selector).forEach(function(el) {
+                    el.style.display = 'block';
+                });
+            } else {
+                document.querySelectorAll(selector).forEach(function(el) {
+                    el.style.display = 'none';
+                });
+            }
+        };
+    });
 }
 
 function importUpdatesAndStats(data) {
