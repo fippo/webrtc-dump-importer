@@ -143,6 +143,36 @@ function createContainers(connid, url) {
     return container;
 }
 
+function processGUM(data) {
+    var container = document.createElement('div');
+    container.style.margin = '10px';
+
+    var table = document.createElement('table');
+    var head = document.createElement('tr');
+    table.appendChild(head);
+
+    container.appendChild(table);
+
+    var columns = ['origin', 'pid', 'rid', 'audio', 'video'];
+    columns.forEach(function(name) {
+        var el;
+        el = document.createElement('th');
+        el.innerText = name;
+        head.appendChild(el);
+    });
+
+    data.forEach(function(event) {
+        var row = document.createElement('tr');
+        columns.forEach(function(attribute) {
+            var cell = document.createElement('td');
+            cell.innerText = event[attribute] || '(none)';
+            row.appendChild(cell);
+        });
+        table.appendChild(row);
+    });
+    document.getElementById('tables').appendChild(container);
+}
+
 function processTraceEvent(table, event) {
     var row = document.createElement('tr');
     var el = document.createElement('td');
@@ -204,13 +234,14 @@ function importUpdatesAndStats(data) {
     var stats;
 
     // FIXME: also display GUM calls (can they be correlated to addStream?)
+    processGUM(data.getUserMedia);
 
     // first, display the updateLog
     for (connid in data.PeerConnections) {
         var connection = data.PeerConnections[connid];
         var container = createContainers(connid, connection.url);
 
-        containers[connid].url.innerText = connection.url;
+        containers[connid].url.innerText = 'Origin: ' + connection.url;
         containers[connid].configuration.innerText = 'Configuration: ' + JSON.stringify(connection.rtcConfiguration, null, ' ');
 
         document.getElementById('tables').appendChild(container);
