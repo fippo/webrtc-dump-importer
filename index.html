@@ -226,7 +226,7 @@ function processTraceEvent(table, event) {
 var graphs = {};
 var containers = {};
 function importUpdatesAndStats(data) {
-    document.getElementById('userAgent').innerText = data.userAgent;
+    document.getElementById('userAgent').innerText = data.UserAgent;
 
     var connection;
     var connid, reportname, stat;
@@ -403,7 +403,7 @@ function importUpdatesAndStats(data) {
     <body>
         <p>This is an import tool for dumps from chrome://webrtc-internals. See <a href="http://testrtc.com/webrtc-internals-parameters/">this blog post</a> for a lengthy description of what it does and how to interpret some of the data.
         <form><input type="file" onchange="doImport(event)"></form>
-        <div><b>User Agent:</b><span id="userAgent"></span></div>
+        <div><b>User Agent:</b> <span id="userAgent"></span></div>
         <div id="tables">
         </div>
         <div id="container" style="min-width: 95%; height: 400px; margin: 0 auto">
