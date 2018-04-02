@@ -371,7 +371,28 @@ function importUpdatesAndStats(data) {
             });
             reportobj[stat].push([comp, values]);
         }
-        Object.keys(reportobj).sort().forEach(function(reportname) {
+
+
+        // sort so we get a more useful order of graphs:
+        // * ssrcs
+        // * bwe
+        // * everything else alphabetically
+        var names = Object.keys(reportobj);
+        var ssrcs = names.filter(function(name) {
+            return name.indexOf('ssrc_') === 0;
+        }).sort(function(a, b) { // sort by send/recv and ssrc
+            var aParts = a.split('_');
+            var bParts = b.split('_');
+            if (aParts[2] === bParts[2]) {
+                return parseInt(aParts[1], 10) - parseInt(bParts[1], 10);
+            } else if (aParts[2] === 'send') return -1;
+            return 1;
+        });
+        names = names.filter(function(name) {
+            return name.indexOf('ssrc_') === -1 && name !== 'bweforvideo';
+        });
+        names = ssrcs.concat(['bweforvideo'], names);
+        names.forEach(function(reportname) {
             // ignore useless graphs
             if (reportname.indexOf('Cand-') === 0 || reportname.indexOf('Channel') === 0) return;
 
