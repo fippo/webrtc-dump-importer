@@ -369,6 +369,9 @@ function importUpdatesAndStats(data) {
             var series = [];
             var reports = reportobj[reportname];
             reports.forEach(function (report) {
+                if (report[0] === 'mediaType') {
+                    series.mediaType = report[1][0][1];
+                }
                 if (typeof(report[1][0][1]) !== 'number') return;
                 if (report[0] === 'bytesReceived' || report[0] === 'bytesSent') return;
                 if (report[0] === 'packetsReceived' || report[0] === 'packetsSent') return;
@@ -387,7 +390,7 @@ function importUpdatesAndStats(data) {
                 container.appendChild(d);
                 var graph = new Highcharts.Chart({
                     title: {
-                        text: reportname + ' (connection ' + connid + ')'
+                        text: reportname + ' (connection ' + connid + ')' + (series.mediaType ? ' kind=' + series.mediaType : '')
                     },
                     xAxis: {
                         type: 'datetime'
