@@ -372,9 +372,12 @@ function importUpdatesAndStats(data) {
                 });
             });
             if (series.length > 0) {
+                var container = document.createElement('div');
+                document.getElementById('container').appendChild(container);
+
                 var d = document.createElement('div');
                 d.id = 'chart_' + Date.now();
-                document.getElementById('container').appendChild(d);
+                container.appendChild(d);
                 var graph = new Highcharts.Chart({
                     title: {
                         text: reportname + ' (connection ' + connid + ')'
@@ -394,6 +397,22 @@ function importUpdatesAndStats(data) {
                     series: series
                 });
                 graphs[connid][reportname] = graph;
+
+                // draw checkbox to turn off everything
+                ((reportname, container, graph) => {
+                    var checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    container.appendChild(checkbox);
+                    var label = document.createElement('label');
+                    label.innerText = 'Turn on/off all data series in ' + connid + ' ' + reportname;
+                    container.appendChild(label);
+                    checkbox.onchange = function() {
+                        graph.series.forEach(function(series) {
+                            series.setVisible(!checkbox.checked, false);
+                        });
+                        graph.redraw();
+                    };
+                })(reportname, container, graph);
             }
         }
     }
