@@ -345,6 +345,7 @@ function importUpdatesAndStats(data) {
         connection = data.PeerConnections[connid];
         graphs[connid] = {};
         var reportobj = {};
+        var values;
         for (reportname in connection.stats) {
             t = reportname.split('-');
             comp = t.pop();
@@ -353,7 +354,13 @@ function importUpdatesAndStats(data) {
             if (!reportobj.hasOwnProperty(stat)) {
                 reportobj[stat] = [];
             }
-            reportobj[stat].push([comp, JSON.parse(connection.stats[reportname].values)]);
+            values = JSON.parse(connection.stats[reportname].values);
+            startTime = new Date(connection.stats[reportname].startTime).getTime();
+            endTime = new Date(connection.stats[reportname].endTime).getTime();
+            values = values.map(function(currentValue, index) {
+                return [startTime + 1000 * index, currentValue];
+            });
+            reportobj[stat].push([comp, values]);
         }
         for (reportname in reportobj) {
             // ignore useless graphs
@@ -362,7 +369,7 @@ function importUpdatesAndStats(data) {
             var series = [];
             var reports = reportobj[reportname];
             reports.forEach(function (report) {
-                if (typeof(report[1][0]) !== 'number') return;
+                if (typeof(report[1][0][1]) !== 'number') return;
                 if (report[0] === 'bytesReceived' || report[0] === 'bytesSent') return;
                 if (report[0] === 'packetsReceived' || report[0] === 'packetsSent') return;
                 if (report[0] === 'googCaptureStartNtpTimeMs') return;
@@ -382,10 +389,10 @@ function importUpdatesAndStats(data) {
                     title: {
                         text: reportname + ' (connection ' + connid + ')'
                     },
-                    /*
                     xAxis: {
                         type: 'datetime'
                     },
+                    /*
                     yAxis: {
                         min: 0
                     },
