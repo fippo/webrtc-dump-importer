@@ -288,9 +288,10 @@ function importUpdatesAndStats(data) {
                 }
             }
         }
-        console.log(stun);
+
+        // TODO: would be super nice to search the candidate and display the local type preference
+        // for relay candidates (which would indicate turn udp/tcp/tls)
         for (t in stun) {
-            console.log(t, stun[t]);
             var row = document.createElement('tr');
             var el;
 
