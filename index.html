@@ -382,6 +382,12 @@ function importUpdatesAndStats(data) {
                 if (report[0] === 'mediaType') {
                     series.mediaType = report[1][0][1];
                 }
+                if (report[0] === 'googTrackId') {
+                    series.trackId = report[1][0][1];
+                }
+                if (report[0] === 'ssrc') {
+                    series.ssrc = report[1][0][1];
+                }
                 if (typeof(report[1][0][1]) !== 'number') return;
                 if (report[0] === 'bytesReceived' || report[0] === 'bytesSent') return;
                 if (report[0] === 'packetsReceived' || report[0] === 'packetsSent') return;
@@ -395,7 +401,12 @@ function importUpdatesAndStats(data) {
                 var container = document.createElement('div');
                 document.getElementById('container').appendChild(container);
 
-                var title = reportname + ' (connection ' + connid + ')' + (series.mediaType ? ' kind=' + series.mediaType : '')
+                var title =
+                    (series.mediaType ? 'media kind=' + series.mediaType + ' ' : '') +
+                    (series.ssrc ? 'ssrc=0x' + series.ssrc.toString(16) + ' ' : '') +
+                    (series.trackId ? 'trackId=' + series.trackId + ' ' : '') +
+                    reportname + ' ' +
+                    '(connection ' + connid + ')';
                 var titleElement = document.createElement('h2');
                 titleElement.innerText = title;
                 container.appendChild(titleElement);
