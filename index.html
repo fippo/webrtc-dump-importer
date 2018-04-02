@@ -28,6 +28,15 @@ details.srflx summary:after {
     content: ' (srflx)'
 }
 
+#container>div:nth-of-type(even) {
+    background-color: #ddd;
+}
+
+.graph {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
 .candidatepairtable {
     text-align: center;
 }
@@ -386,12 +395,18 @@ function importUpdatesAndStats(data) {
                 var container = document.createElement('div');
                 document.getElementById('container').appendChild(container);
 
+                var title = reportname + ' (connection ' + connid + ')' + (series.mediaType ? ' kind=' + series.mediaType : '')
+                var titleElement = document.createElement('h2');
+                titleElement.innerText = title;
+                container.appendChild(titleElement);
+
                 var d = document.createElement('div');
                 d.id = 'chart_' + Date.now();
+                d.classList.add('graph');
                 container.appendChild(d);
                 var graph = new Highcharts.Chart({
                     title: {
-                        text: reportname + ' (connection ' + connid + ')' + (series.mediaType ? ' kind=' + series.mediaType : '')
+                        text: title
                     },
                     xAxis: {
                         type: 'datetime'
@@ -403,7 +418,7 @@ function importUpdatesAndStats(data) {
                     */
                     chart: {
                         zoomType: 'x',
-                        renderTo : d.id
+                        renderTo : d.id,
                     },
                     series: series
                 });
