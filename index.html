@@ -422,11 +422,9 @@ function importUpdatesAndStats(data) {
                     xAxis: {
                         type: 'datetime'
                     },
-                    /*
                     yAxis: {
-                        min: 0
+                        min: series.mediaType ? 0 : undefined
                     },
-                    */
                     chart: {
                         zoomType: 'x',
                         renderTo : d.id,
