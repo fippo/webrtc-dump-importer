@@ -362,9 +362,10 @@ function importUpdatesAndStats(data) {
             });
             reportobj[stat].push([comp, values]);
         }
-        for (reportname in reportobj) {
+        var reports = Object.keys(reportobj).sort();
+        reports.forEach(function(reportname) {
             // ignore useless graphs
-            if (reportname.indexOf('Cand-') === 0 || reportname.indexOf('Channel') === 0) continue;
+            if (reportname.indexOf('Cand-') === 0 || reportname.indexOf('Channel') === 0) return;
 
             var series = [];
             var reports = reportobj[reportname];
@@ -424,7 +425,7 @@ function importUpdatesAndStats(data) {
                     };
                 })(reportname, container, graph);
             }
-        }
+        });
     }
 }
         </script>
