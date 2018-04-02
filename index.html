@@ -371,14 +371,13 @@ function importUpdatesAndStats(data) {
             });
             reportobj[stat].push([comp, values]);
         }
-        var reports = Object.keys(reportobj).sort();
-        reports.forEach(function(reportname) {
+        Object.keys(reportobj).sort().forEach(function(reportname) {
             // ignore useless graphs
             if (reportname.indexOf('Cand-') === 0 || reportname.indexOf('Channel') === 0) return;
 
             var series = [];
             var reports = reportobj[reportname];
-            reports.forEach(function (report) {
+            reports.sort().forEach(function (report) {
                 if (report[0] === 'mediaType') {
                     series.mediaType = report[1][0][1];
                 }
