@@ -424,6 +424,13 @@ function importUpdatesAndStats(data) {
                 if (report[0] === 'packetsReceived' || report[0] === 'packetsSent') return;
                 if (report[0] === 'googCaptureStartNtpTimeMs') return;
 
+                if (report[0] === 'bitsReceivedPerSecond' || report[0] === 'bitsSentPerSecond') { // convert to kbps
+                    report[0] = 'k' + report[0];
+                    report[1] = report[1].map(function(el) {
+                      return [el[0], Math.floor(el[1] / 1000)];
+                    });
+                }
+
                 var hiddenSeries = [
                     'qpSum',
                     'framesEncoded', 'framesDecoded',
