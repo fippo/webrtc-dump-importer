@@ -15,20 +15,20 @@ details[open] pre {
     padding-left: 10px;
     padding-bottom: 10px;
 }
-details[open] summary {
+table details[open] summary {
     color: blue;
 }
-details.host summary:after {
+table details.host summary:after {
     content: ' (host)';
 }
-details.relay summary:after {
+table details.relay summary:after {
     content: ' (relay)';
 }
-details.srflx summary:after {
+table details.srflx summary:after {
     content: ' (srflx)'
 }
 
-#container>div:nth-of-type(even) {
+#container>details:nth-of-type(even) {
     background-color: #ddd;
 }
 
@@ -430,7 +430,10 @@ function importUpdatesAndStats(data) {
                 });
             });
             if (series.length > 0) {
-                var container = document.createElement('div');
+                var container = document.createElement('details');
+                container.open = reportname.indexOf('ssrc_') === 0 ||
+                    reportname === 'bweforvideo' ||
+                    (reportname.indexOf('Conn-') === 0 && reportname.indexOf('-1-0') !== -1);
                 document.getElementById('container').appendChild(container);
 
                 var title =
@@ -439,7 +442,7 @@ function importUpdatesAndStats(data) {
                     (series.trackId ? 'trackId=' + series.trackId + ' ' : '') +
                     reportname + ' ' +
                     '(connection ' + connid + ')';
-                var titleElement = document.createElement('h2');
+                var titleElement = document.createElement('summary');
                 titleElement.innerText = title;
                 container.appendChild(titleElement);
 
@@ -464,6 +467,9 @@ function importUpdatesAndStats(data) {
                     series: series
                 });
                 graphs[connid][reportname] = graph;
+
+                // expand the graph when opening
+                container.ontoggle = () => container.open && graph.reflow();
 
                 // draw checkbox to turn off everything
                 ((reportname, container, graph) => {
