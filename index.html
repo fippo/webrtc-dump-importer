@@ -391,8 +391,20 @@ function importUpdatesAndStats(data) {
                 if (report[0] === 'bytesReceived' || report[0] === 'bytesSent') return;
                 if (report[0] === 'packetsReceived' || report[0] === 'packetsSent') return;
                 if (report[0] === 'googCaptureStartNtpTimeMs') return;
+
+                var hiddenSeries = [
+                    'qpSum',
+                    'framesEncoded', 'framesDecoded',
+                    'audioInputLevel', 'audioOutputLevel',
+                    'googEchoCancellationEchoDelayStdDev',
+                    'totalSamplesDuration',
+                    'googDecodingCTN', 'googDecodingCNG', 'googDecodingNormal',
+                    'googDecodingPLCCNG', 'googDecodingCTSG',
+                ];
+
                 series.push({
                     name: report[0],
+                    visible: hiddenSeries.indexOf(report[0]) === -1,
                     data: report[1]
                 });
             });
@@ -431,25 +443,6 @@ function importUpdatesAndStats(data) {
                     series: series
                 });
                 graphs[connid][reportname] = graph;
-
-                // hide some series in a smart way. For some definition thereof.
-                if (reportname.indexOf('ssrc_') === 0) {
-                    graph.series.forEach(function(series) {
-                        var hiddenSeries = [
-                            'qpSum',
-                            'framesEncoded', 'framesDecoded',
-                            'audioInputLevel', 'audioOutputLevel',
-                            'googEchoCancellationEchoDelayStdDev',
-                            'totalSamplesDuration',
-                            'googDecodingCTN', 'googDecodingCNG', 'googDecodingNormal',
-                            'googDecodingPLCCNG', 'googDecodingCTSG',
-                        ];
-                        if (hiddenSeries.indexOf(series.name) !== -1) {
-                            series.setVisible(false, false);
-                        }
-                    });
-                    graph.redraw();
-                }
 
                 // draw checkbox to turn off everything
                 ((reportname, container, graph) => {
