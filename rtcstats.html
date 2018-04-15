@@ -410,7 +410,7 @@ function processConnections(connectionIds, data) {
 
     var graphTypes = {};
     var graphSelectorContainer = document.createElement('div');
-    document.getElementById('container').appendChild(graphSelectorContainer);
+    container.appendChild(graphSelectorContainer);
 
     graphs[connid] = {};
     var reportobj = {};
@@ -418,20 +418,20 @@ function processConnections(connectionIds, data) {
         var graphType = series[reportname].type;
         graphTypes[graphType] = true;
 
-        var container = document.createElement('details');
-        container.open = true;
-        container.classList.add('webrtc-' + graphType);
-        document.getElementById('container').appendChild(container);
+        var graphContainer = document.createElement('details');
+        graphContainer.open = ['candidatepair'].indexOf(graphType) === -1;
+        graphContainer.classList.add('webrtc-' + graphType);
+        container.appendChild(graphContainer);
 
         var title = connid + ' type=' + graphType + ' ' + reportname;
 
         var summary = document.createElement('summary');
         summary.innerText = title;
-        container.appendChild(summary);
+        graphContainer.appendChild(summary);
 
         var chartContainer = document.createElement('div');
         chartContainer.id = 'chart_' + Date.now();
-        container.appendChild(chartContainer);
+        graphContainer.appendChild(chartContainer);
 
         var da = [];
         Object.keys(series[reportname]).forEach(function(name) {
@@ -462,21 +462,21 @@ function processConnections(connectionIds, data) {
         graphs[connid][reportname] = graph;
 
         // draw checkbox to turn off everything
-        ((reportname, container, graph) => {
-            container.ontoggle = () => container.open && graph.reflow();
+        ((reportname, graphContainer, graph) => {
+            container.ontoggle = () => graphContainer.open && graph.reflow();
             var checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
-            container.appendChild(checkbox);
+            graphContainer.appendChild(checkbox);
             var label = document.createElement('label');
             label.innerText = 'Turn on/off all data series in ' + connid + ' ' + reportname;
-            container.appendChild(label);
+            graphContainer.appendChild(label);
             checkbox.onchange = function() {
                 graph.series.forEach(function(series) {
                     series.setVisible(!checkbox.checked, false);
                 });
                 graph.redraw();
             };
-        })(reportname, container, graph);
+        })(reportname, graphContainer, graph);
     }
 
     Object.keys(graphTypes).forEach(function(type) {
@@ -516,7 +516,7 @@ function importUpdatesAndStats(data) {
         <div><b>User Agent:</b><span id="userAgent"></span></div>
         <div id="tables">
         </div>
-        <div id="container" style="min-width: 95%; height: 400px; margin: 0 auto">
+        <div id="tables">
         </div>
     </body>
 </html>
