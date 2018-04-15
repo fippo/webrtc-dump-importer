@@ -9,25 +9,25 @@
         <script src="https://code.highcharts.com/highcharts.js"></script>
         <script src="mangle.js"></script>
         <style>
-            body, body svg text {
-                font-family: monospace;
-            }
-            details[open] pre {
-                padding-left: 10px;
-                padding-bottom: 10px;
-            }
-            details[open] summary {
-                color: blue;
-            }
-            details.host summary:after {
-                content: ' (host)';
-            }
-            details.relay summary:after {
-                content: ' (relay)';
-            }
-            details.srflx summary:after {
-                content: ' (srflx)'
-            }
+body, body svg text {
+    font-family: monospace;
+}
+details[open] pre {
+    padding-left: 10px;
+    padding-bottom: 10px;
+}
+table details[open] summary {
+    color: blue;
+}
+table details.host summary:after {
+    content: ' (host)';
+}
+table details.relay summary:after {
+    content: ' (relay)';
+}
+table details.srflx summary:after {
+    content: ' (srflx)'
+}
 .candidatepairtable {
     text-align: center;
 }
@@ -35,8 +35,17 @@
     background-color: #ddd;
     padding: 5px;
 }
-    ice.style['background-color'] = '#ddd';
-    ice.style['text-align'] = 'center';
+#tables>details:nth-of-type(even) {
+    background-color: #f0f0f0;
+}
+
+.graph {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+ice.style['background-color'] = '#ddd';
+ice.style['text-align'] = 'center';
         </style>
 
         <script>
@@ -204,8 +213,13 @@ function createContainers(connid, url) {
 }
 
 function processGUM(data) {
-    var container = document.createElement('div');
+    var container = document.createElement('details');
+    container.open = true;
     container.style.margin = '10px';
+
+    var summary = document.createElement('summary');
+    summary.innerText = 'getUserMedia calls';
+    container.appendChild(summary);
 
     var table = document.createElement('table');
     var head = document.createElement('tr');
@@ -404,9 +418,16 @@ function processConnections(connectionIds, data) {
         var graphType = series[reportname].type;
         graphTypes[graphType] = true;
 
-        var container = document.createElement('div');
+        var container = document.createElement('details');
+        container.open = true;
         container.classList.add('webrtc-' + graphType);
         document.getElementById('container').appendChild(container);
+
+        var title = connid + ' type=' + graphType + ' ' + reportname;
+
+        var summary = document.createElement('summary');
+        summary.innerText = title;
+        container.appendChild(summary);
 
         var chartContainer = document.createElement('div');
         chartContainer.id = 'chart_' + Date.now();
@@ -422,7 +443,7 @@ function processConnections(connectionIds, data) {
         });
         var graph = new Highcharts.Chart({
             title: {
-                text: connid + ' type=' + graphType + ' ' + reportname
+                text: title
             },
             xAxis: {
                 type: 'datetime'
@@ -442,6 +463,7 @@ function processConnections(connectionIds, data) {
 
         // draw checkbox to turn off everything
         ((reportname, container, graph) => {
+            container.ontoggle = () => container.open && graph.reflow();
             var checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             container.appendChild(checkbox);
