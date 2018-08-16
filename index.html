@@ -100,11 +100,19 @@ function createContainers(connid, url) {
     head.appendChild(el);
 
     el = document.createElement('td');
+    el.innerText = 'Local id';
+    head.appendChild(el);
+
+    el = document.createElement('td');
     el.innerText = 'Remote address';
     head.appendChild(el);
 
     el = document.createElement('td');
     el.innerText = 'Remote type';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'Remote id';
     head.appendChild(el);
 
     el = document.createElement('td');
@@ -295,6 +303,8 @@ function importUpdatesAndStats(data) {
                 case 'responsesSent':
                 case 'requestsReceived':
                 case 'responsesReceived':
+                case 'localCandidateId':
+                case 'remoteCandidateId':
                 case 'googLocalAddress':
                 case 'googRemoteAddress':
                 case 'googLocalCandidateType':
@@ -324,11 +334,19 @@ function importUpdatesAndStats(data) {
             row.appendChild(el);
 
             el = document.createElement('td');
+            el.innerText = stun[t].localCandidateId;
+            row.appendChild(el);
+
+            el = document.createElement('td');
             el.innerText = stun[t].googRemoteAddress;
             row.appendChild(el);
 
             el = document.createElement('td');
             el.innerText = stun[t].googRemoteCandidateType;
+            row.appendChild(el);
+
+            el = document.createElement('td');
+            el.innerText = stun[t].localCandidateId;
             row.appendChild(el);
 
             el = document.createElement('td');
