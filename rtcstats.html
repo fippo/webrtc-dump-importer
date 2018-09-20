@@ -28,13 +28,7 @@ table details.relay summary:after {
 table details.srflx summary:after {
     content: ' (srflx)'
 }
-.candidatepairtable {
-    text-align: center;
-}
-.candidatepairtable td {
-    background-color: #ddd;
-    padding: 5px;
-}
+
 #tables>details:nth-of-type(even) {
     background-color: #f0f0f0;
 }
@@ -44,6 +38,13 @@ table details.srflx summary:after {
     margin-right: 10px;
 }
 
+.candidatepairtable {
+    text-align: center;
+}
+.candidatepairtable td {
+    background-color: #ddd;
+    padding: 5px;
+}
 ice.style['background-color'] = '#ddd';
 ice.style['text-align'] = 'center';
         </style>
@@ -128,6 +129,7 @@ function doImport(evt) {
 }
 
 function createContainers(connid, url) {
+    var el;
     var container = document.createElement('div');
     container.style.margin = '10px';
 
@@ -142,56 +144,53 @@ function createContainers(connid, url) {
     container.appendChild(iceConnectionState);
 
     // for ice candidates
-    if (1) {
-        var ice = document.createElement('table');
-        ice.className = 'candidatepairtable';
-        var head = document.createElement('tr');
-        ice.appendChild(head);
+    var ice = document.createElement('table');
+    ice.className = 'candidatepairtable';
+    var head = document.createElement('tr');
+    ice.appendChild(head);
 
-        el = document.createElement('td');
-        el.innerText = 'Local address';
-        head.appendChild(el);
+    el = document.createElement('td');
+    el.innerText = 'Local address';
+    head.appendChild(el);
 
-        el = document.createElement('td');
-        el.innerText = 'Local type';
-        head.appendChild(el);
+    el = document.createElement('td');
+    el.innerText = 'Local type';
+    head.appendChild(el);
 
-        el = document.createElement('td');
-        el.innerText = 'Remote address';
-        head.appendChild(el);
+    el = document.createElement('td');
+    el.innerText = 'Remote address';
+    head.appendChild(el);
 
-        el = document.createElement('td');
-        el.innerText = 'Remote type';
-        head.appendChild(el);
+    el = document.createElement('td');
+    el.innerText = 'Remote type';
+    head.appendChild(el);
 
-        el = document.createElement('td');
-        el.innerText = 'Requests sent';
-        head.appendChild(el);
+    el = document.createElement('td');
+    el.innerText = 'Requests sent';
+    head.appendChild(el);
 
-        el = document.createElement('td');
-        el.innerText = 'Responses received';
-        head.appendChild(el);
+    el = document.createElement('td');
+    el.innerText = 'Responses received';
+    head.appendChild(el);
 
-        el = document.createElement('td');
-        el.innerText = 'Requests received';
-        head.appendChild(el);
+    el = document.createElement('td');
+    el.innerText = 'Requests received';
+    head.appendChild(el);
 
-        el = document.createElement('td');
-        el.innerText = 'Responses sent';
-        head.appendChild(el);
+    el = document.createElement('td');
+    el.innerText = 'Responses sent';
+    head.appendChild(el);
 
-        el = document.createElement('td');
-        el.innerText = 'Active Connection';
-        head.appendChild(el);
+    el = document.createElement('td');
+    el.innerText = 'Active Connection';
+    head.appendChild(el);
 
-        container.appendChild(ice);
-    }
+    container.appendChild(ice);
 
     var table = document.createElement('table');
-    var head = document.createElement('tr');
+    head = document.createElement('tr');
     table.appendChild(head);
 
-    var el;
     el = document.createElement('th');
     el.innerText = 'connection ' + connid;
     head.appendChild(el);
@@ -240,7 +239,7 @@ function processGUM(data) {
 
 function processTraceEvent(table, event) {
     var row = document.createElement('tr');
-    el = document.createElement('td');
+    var el = document.createElement('td');
     el.setAttribute('nowrap', '');
     el.innerText = event.time;
     row.appendChild(el);
@@ -359,7 +358,6 @@ function processConnections(connectionIds, data) {
             }
         }
         for (t in stun) {
-            // console.log('STUN', t, stun[t]);
             var row = document.createElement('tr');
             var el;
 
@@ -513,7 +511,7 @@ function importUpdatesAndStats(data) {
     </head>
     <body>
         <form><input type="file" onchange="doImport(event)"></form>
-        <div><b>User Agent:</b><span id="userAgent"></span></div>
+        <div><b>User Agent:</b> <span id="userAgent"></span></div>
         <div id="tables">
         </div>
         <div id="container" style="min-width: 95%; height: 400px; margin: 0 auto">

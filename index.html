@@ -2,11 +2,11 @@
     <head>
         <meta charset="utf-8">
         <title>Import webrtc-internals dumps</title>
-        <script src="//code.jquery.com/jquery-2.1.3.min.js"></script>
+        <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
         <!-- highcharts is used under the terms of
             http://shop.highsoft.com/faq/non-commercial
         -->
-        <script src="//code.highcharts.com/highcharts.js"></script>
+        <script src="https://code.highcharts.com/highcharts.js"></script>
         <style>
 body, body svg text {
     font-family: monospace;
@@ -44,8 +44,8 @@ table details.srflx summary:after {
     background-color: #ddd;
     padding: 5px;
 }
-    ice.style['background-color'] = '#ddd';
-    ice.style['text-align'] = 'center';
+ice.style['background-color'] = '#ddd';
+ice.style['text-align'] = 'center';
         </style>
 
         <script>
@@ -65,8 +65,8 @@ function doImport(evt) {
 function createContainers(connid, url) {
     var el;
     var container = document.createElement('details');
-    container.style.margin = '10px';
     container.open = true;
+    container.style.margin = '10px';
 
     var summary = document.createElement('summary');
     summary.innerText = 'Connection:' + connid + ' URL: ' + url;
@@ -243,9 +243,11 @@ function processTraceEvent(table, event) {
     }
 
     if (event.type === 'onIceCandidate' || event.type === 'addIceCandidate') {
-        var parts = event.value.split(',')[2].trim().split(' ');
-        if (parts && parts.length >= 9 && parts[7] === 'typ') {
-            details.classList.add(parts[8]);
+        if (event.value && event.value.candidate) {
+            var parts = event.value.split(',')[2].trim().split(' ');
+            if (parts && parts.length >= 9 && parts[7] === 'typ') {
+                details.classList.add(parts[8]);
+            }
         }
     }
     table.appendChild(row);
@@ -319,8 +321,6 @@ function importUpdatesAndStats(data) {
             }
         }
 
-        // TODO: would be super nice to search the candidate and display the local type preference
-        // for relay candidates (which would indicate turn udp/tcp/tls)
         for (t in stun) {
             var row = document.createElement('tr');
             var el;
