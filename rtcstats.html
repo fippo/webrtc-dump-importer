@@ -333,8 +333,15 @@ function processConnections(connectionIds, data) {
                             series[id] = {};
                             series[id].type = stats[id].type;
                         }
-                        if (!series[id][name]) series[id][name] = [];
-                        series[id][name].push([new Date(connection[i].time).getTime(), stats[id][name]]);
+                        if (!series[id][name]) {
+                            series[id][name] = [];
+                        } else {
+                            var lastTime = series[id][name][series[id][name].length - 1][0];
+                            if (lastTime && stats[id].timestamp && stats[id].timestamp - lastTime > 5000) {
+                                series[id][name].push([stats[id].timestamp || new Date(connection[i].time).getTime(), null]);
+                            }
+                        }
+                        series[id][name].push([stats[id].timestamp || new Date(connection[i].time).getTime(), stats[id][name]]);
                     }
                 });
             });
