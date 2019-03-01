@@ -64,6 +64,7 @@ function decompress(baseStats, newStats) {
   return baseStats;
 }
 
+var fileFormat;
 function doImport(evt) {
   evt.target.disabled = 'disabled';
   var files = evt.target.files;
@@ -71,13 +72,14 @@ function doImport(evt) {
   reader.onload = (function(file) {
     return function(e) {
       if (e.target.result.indexOf('\n') === -1) {
-        // old format
+        // old format v0
         thelog = JSON.parse(e.target.result);
       } else {
         // new format, multiple lines
         var baseStats = {};
         var lines = e.target.result.split('\n');
         var client = JSON.parse(lines.shift());
+        fileFormat = client.fileFormat;
         client.peerConnections = {};
         client.getUserMedia = [];
         lines.forEach(function(line) {
@@ -341,7 +343,11 @@ function processConnections(connectionIds, data) {
                                 series[id][name].push([stats[id].timestamp || new Date(connection[i].time).getTime(), null]);
                             }
                         }
-                        series[id][name].push([new Date(connection[i].time).getTime(), stats[id][name]]);
+                        if (fileFormat >= 2) {
+                            series[id][name].push([stats[id].timestamp, stats[id][name]]);
+                        } else {
+                            series[id][name].push([new Date(connection[i].time).getTime(), stats[id][name]]);
+                        }
                     }
                 });
             });
