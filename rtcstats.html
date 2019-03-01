@@ -341,7 +341,7 @@ function processConnections(connectionIds, data) {
                                 series[id][name].push([stats[id].timestamp || new Date(connection[i].time).getTime(), null]);
                             }
                         }
-                        series[id][name].push([stats[id].timestamp || new Date(connection[i].time).getTime(), stats[id][name]]);
+                        series[id][name].push([new Date(connection[i].time).getTime(), stats[id][name]]);
                     }
                 });
             });
