@@ -13,6 +13,9 @@ function mangle(stats) {
   // taken from https://github.com/fippo/adapter/tree/getstats-mangling
   var standardReport = {};
   Object.keys(stats).forEach(function(id) {
+    if (!stats[id].id) {
+      stats[id].id = id; // backfill, might have been removed by client.
+    }
     var standardStats = stats[id];
 
     // Step 1: translate to standard types and attribute names.
