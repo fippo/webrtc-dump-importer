@@ -51,11 +51,21 @@ ice.style['text-align'] = 'center';
 
         <script>
 function decompress(baseStats, newStats) {
+  const timestamp = newStats.timestamp
+  delete newStats.timestamp;
   Object.keys(newStats).forEach(function(id) {
     if (!baseStats[id]) {
+      if (newStats[id].timestamp === 0) {
+        newStats[id].timestamp = timestamp;
+      }
       baseStats[id] = newStats[id];
     } else {
-      var report = newStats[id];
+      const report = newStats[id];
+      if (report.timestamp === 0) {
+          report.timestamp = timestamp;
+      } else if (!report.timestamp) {
+          report.timestamp = new Date(baseStats[id].timestamp).getTime();
+      }
       Object.keys(report).forEach(function(name) {
         baseStats[id][name] = report[name];
       });
