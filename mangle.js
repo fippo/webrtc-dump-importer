@@ -220,6 +220,9 @@ function mangle(stats) {
         standardStats.googRetransmitBitrate = parseInt(standardStats.googRetransmitBitrate, 10);
         standardStats.googTargetEncBitrate = parseInt(standardStats.googTargetEncBitrate, 10);
         break;
+      case 'rtcstats-device-report':
+        standardStats.batteryLevel = parseInt(standardStats.batteryLevel, 10);
+        break;
       default:
         break;
     }
