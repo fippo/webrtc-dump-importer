@@ -349,7 +349,7 @@ function processConnections(connectionIds, data) {
                             series[id][name] = [];
                         } else {
                             var lastTime = series[id][name][series[id][name].length - 1][0];
-                            if (lastTime && stats[id].timestamp && stats[id].timestamp - lastTime > 15000) {
+                            if (lastTime && stats[id].timestamp && stats[id].timestamp - lastTime > 20000) {
                                 series[id][name].push([stats[id].timestamp || new Date(connection[i].time).getTime(), null]);
                             }
                         }
