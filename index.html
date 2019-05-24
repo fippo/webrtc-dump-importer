@@ -417,10 +417,13 @@ function importUpdatesAndStats(data) {
             } else if (aParts[2] === 'send') return -1;
             return 1;
         });
+        var bwe = names.filter(function(name) {
+            return name === 'bweforvideo';
+        });
         names = names.filter(function(name) {
             return name.indexOf('ssrc_') === -1 && name !== 'bweforvideo';
         });
-        names = ssrcs.concat(['bweforvideo'], names);
+        names = ssrcs.concat(bwe, names);
         names.forEach(function(reportname) {
             // ignore useless graphs
             if (reportname.indexOf('Cand-') === 0 || reportname.indexOf('Channel') === 0) return;
