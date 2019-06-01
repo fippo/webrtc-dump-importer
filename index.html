@@ -62,34 +62,9 @@ function doImport(evt) {
   reader.readAsText(files[0]);
 }
 
-function createContainers(connid, url) {
-    var el;
-    var container = document.createElement('details');
-    container.open = true;
-    container.style.margin = '10px';
-
-    var summary = document.createElement('summary');
-    summary.innerText = 'Connection:' + connid + ' URL: ' + url;
-    container.appendChild(summary);
-
-    var configuration = document.createElement('div');
-    container.appendChild(configuration);
-
-    // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
-    var signalingState = document.createElement('div');
-    signalingState.id = 'signalingstate_' + connid;
-    signalingState.textContent = 'Signaling state:';
-    container.appendChild(signalingState);
-    var iceConnectionState = document.createElement('div');
-    iceConnectionState.id = 'iceconnectionstate_' + connid;
-    iceConnectionState.textContent = 'ICE connection state:';
-    container.appendChild(iceConnectionState);
-
+function createLegacyCandidateTable(container, stun) {
     // for ice candidates
-    var ice = document.createElement('table');
-    ice.className = 'candidatepairtable';
     var head = document.createElement('tr');
-    ice.appendChild(head);
 
     el = document.createElement('td');
     el.innerText = 'Local address';
@@ -134,7 +109,192 @@ function createContainers(connid, url) {
     el = document.createElement('td');
     el.innerText = 'Active Connection';
     head.appendChild(el);
+    container.appendChild(head);
 
+    for (t in stun) {
+        var row = document.createElement('tr');
+        var el;
+
+        el = document.createElement('td');
+        el.innerText = stun[t].googLocalAddress;
+        row.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = stun[t].googLocalCandidateType;
+        row.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = stun[t].localCandidateId;
+        row.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = stun[t].googRemoteAddress;
+        row.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = stun[t].googRemoteCandidateType;
+        row.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = stun[t].localCandidateId;
+        row.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = stun[t].requestsSent;
+        row.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = stun[t].responsesReceived;
+        row.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = stun[t].requestsReceived;
+        row.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = stun[t].responsesSent;
+        row.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = stun[t].googActiveConnection;
+        row.appendChild(el);
+        /*
+        el = document.createElement('td');
+        el.innerText = stun[t].consentRequestsSent;
+        row.appendChild(el);
+        */
+
+        container.appendChild(row);
+    }
+}
+
+function createSpecCandidateTable(container, allStats) {
+    const transports = {};
+    const pairs = {};
+    const candidates = {};
+    let row;
+    let el;
+    for (reportname in allStats) {
+        t = reportname.split('-');
+        comp = t.pop();
+        t = t.join('-');
+        const stats = JSON.parse(allStats[reportname].values);
+        if (reportname.indexOf('RTCTransport') === 0) {
+            if (!transports[t]) transports[t] = {};
+            switch(comp) {
+            case 'bytesSent':
+            case 'bytesReceived':
+            case 'dtlsState':
+            case 'selectedCandidatePairId':
+                transports[t][comp] = stats[stats.length - 1];
+            default:
+                // console.log(reportname, comp, stats);
+            }
+        } else if (reportname.indexOf('RTCIceCandidatePair') === 0) {
+            if (!pairs[t]) pairs[t] = {};
+            pairs[t][comp] = stats[stats.length - 1];
+        } else if (reportname.indexOf('RTCIceCandidate') === 0) {
+            if (!candidates[t]) candidates[t] = {};
+            candidates[t][comp] = stats[stats.length -  1]
+        }
+    }
+    for (t in transports) {
+        row = document.createElement('tr');
+
+        el = document.createElement('td');
+        el.innerText = t;
+        row.appendChild(el);
+
+        el = document.createElement('td');
+        el.innerText = transports[t].selectedCandidatePairId;
+        row.appendChild(el);
+
+        container.appendChild(row);
+
+        for (p in pairs) {
+            if (pairs[p].transportId !== t) continue;
+            const pair = pairs[p];
+            row = document.createElement('tr');
+
+            row.appendChild(document.createElement('td'));
+
+            el = document.createElement('td');
+            el.innerText = p;
+            row.appendChild(el);
+
+            container.appendChild(row);
+            // console.log('PAIR', p, pair);
+
+            for (c in candidates) {
+                if (!(c === pair.localCandidateId || c === pair.remoteCandidateId)) continue;
+                const candidate = candidates[c];
+                row = document.createElement('tr');
+
+                row.appendChild(document.createElement('td'));
+                row.appendChild(document.createElement('td'));
+                el = document.createElement('td');
+                el.innerText = c;
+                row.appendChild(el);
+
+                el = document.createElement('td');
+                el.innerText = candidate.isRemote ? 'remote' : 'local';
+                row.appendChild(el);
+
+                el = document.createElement('td');
+                el.innerText = candidate.candidateType;
+                row.appendChild(el);
+
+                el = document.createElement('td');
+                el.innerText = candidate.address || candidate.ip;
+                row.appendChild(el);
+
+                el = document.createElement('td');
+                el.innerText = candidate.port;
+                row.appendChild(el);
+
+                el = document.createElement('td');
+                el.innerText = candidate.protocol;
+                row.appendChild(el);
+
+                el = document.createElement('td');
+                el.innerText = candidate.priority;
+                row.appendChild(el);
+
+                el = document.createElement('td');
+                el.innerText = candidate.networkType || 'unknown';
+                row.appendChild(el);
+
+                container.appendChild(row);
+            }
+        }
+    }
+}
+
+function createContainers(connid, url) {
+    var el;
+    var container = document.createElement('details');
+    container.open = true;
+    container.style.margin = '10px';
+
+    var summary = document.createElement('summary');
+    summary.innerText = 'Connection:' + connid + ' URL: ' + url;
+    container.appendChild(summary);
+
+    var configuration = document.createElement('div');
+    container.appendChild(configuration);
+
+    // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
+    var signalingState = document.createElement('div');
+    signalingState.id = 'signalingstate_' + connid;
+    signalingState.textContent = 'Signaling state:';
+    container.appendChild(signalingState);
+    var iceConnectionState = document.createElement('div');
+    iceConnectionState.id = 'iceconnectionstate_' + connid;
+    iceConnectionState.textContent = 'ICE connection state:';
+    container.appendChild(iceConnectionState);
+
+    var ice = document.createElement('table');
+    ice.className = 'candidatepairtable';
     container.appendChild(ice);
 
     var table = document.createElement('table');
@@ -321,60 +481,11 @@ function importUpdatesAndStats(data) {
             }
         }
 
-        for (t in stun) {
-            var row = document.createElement('tr');
-            var el;
-
-            el = document.createElement('td');
-            el.innerText = stun[t].googLocalAddress;
-            row.appendChild(el);
-
-            el = document.createElement('td');
-            el.innerText = stun[t].googLocalCandidateType;
-            row.appendChild(el);
-
-            el = document.createElement('td');
-            el.innerText = stun[t].localCandidateId;
-            row.appendChild(el);
-
-            el = document.createElement('td');
-            el.innerText = stun[t].googRemoteAddress;
-            row.appendChild(el);
-
-            el = document.createElement('td');
-            el.innerText = stun[t].googRemoteCandidateType;
-            row.appendChild(el);
-
-            el = document.createElement('td');
-            el.innerText = stun[t].localCandidateId;
-            row.appendChild(el);
-
-            el = document.createElement('td');
-            el.innerText = stun[t].requestsSent;
-            row.appendChild(el);
-
-            el = document.createElement('td');
-            el.innerText = stun[t].responsesReceived;
-            row.appendChild(el);
-
-            el = document.createElement('td');
-            el.innerText = stun[t].requestsReceived;
-            row.appendChild(el);
-
-            el = document.createElement('td');
-            el.innerText = stun[t].responsesSent;
-            row.appendChild(el);
-
-            el = document.createElement('td');
-            el.innerText = stun[t].googActiveConnection;
-            row.appendChild(el);
-            /*
-            el = document.createElement('td');
-            el.innerText = stun[t].consentRequestsSent;
-            row.appendChild(el);
-            */
-
-            containers[connid].candidates.appendChild(row);
+        if (Object.keys(stun).length === 0) {
+            createSpecCandidateTable(containers[connid].candidates, connection.stats);
+            // spec-stats. A bit more complicated... we need the transport and then the candidate pair and the local/remote candidates.
+        } else {
+            createLegacyCandidateTable(containers[connid].candidates, stun);
         }
     }
 
