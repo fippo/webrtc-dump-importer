@@ -163,70 +163,74 @@ function createContainers(connid, url) {
     summary.innerText = 'Connection:' + connid + ' URL: ' + url;
     container.appendChild(summary);
 
-    // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
-    var signalingState = document.createElement('div');
-    signalingState.id = 'signalingstate_' + connid;
-    signalingState.textContent = 'Signaling state:';
-    container.appendChild(signalingState);
-    var iceConnectionState = document.createElement('div');
-    iceConnectionState.id = 'iceconnectionstate_' + connid;
-    iceConnectionState.textContent = 'ICE connection state:';
-    container.appendChild(iceConnectionState);
-    var connectionState = document.createElement('div');
-    connectionState.id = 'connectionstate_' + connid;
-    connectionState.textContent = 'Connection state:';
-    container.appendChild(connectionState);
+    if (connid !== 'null') {
+        // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
+        var signalingState = document.createElement('div');
+        signalingState.id = 'signalingstate_' + connid;
+        signalingState.textContent = 'Signaling state:';
+        container.appendChild(signalingState);
+        var iceConnectionState = document.createElement('div');
+        iceConnectionState.id = 'iceconnectionstate_' + connid;
+        iceConnectionState.textContent = 'ICE connection state:';
+        container.appendChild(iceConnectionState);
+        var connectionState = document.createElement('div');
+        connectionState.id = 'connectionstate_' + connid;
+        connectionState.textContent = 'Connection state:';
+        container.appendChild(connectionState);
+    }
 
-    // for ice candidates
-    var iceContainer = document.createElement('details');
-    iceContainer.open = true;
-    summary = document.createElement('summary');
-    summary.innerText = 'ICE candidate grid';
-    iceContainer.appendChild(summary);
+    if (connid !== 'null') {
+        // for ice candidates
+        var iceContainer = document.createElement('details');
+        iceContainer.open = true;
+        summary = document.createElement('summary');
+        summary.innerText = 'ICE candidate grid';
+        iceContainer.appendChild(summary);
 
-    var ice = document.createElement('table');
-    ice.className = 'candidatepairtable';
-    var head = document.createElement('tr');
-    ice.appendChild(head);
+        var ice = document.createElement('table');
+        ice.className = 'candidatepairtable';
+        var head = document.createElement('tr');
+        ice.appendChild(head);
 
-    el = document.createElement('td');
-    el.innerText = 'Local address';
-    head.appendChild(el);
+        el = document.createElement('td');
+        el.innerText = 'Local address';
+        head.appendChild(el);
 
-    el = document.createElement('td');
-    el.innerText = 'Local type';
-    head.appendChild(el);
+        el = document.createElement('td');
+        el.innerText = 'Local type';
+        head.appendChild(el);
 
-    el = document.createElement('td');
-    el.innerText = 'Remote address';
-    head.appendChild(el);
+        el = document.createElement('td');
+        el.innerText = 'Remote address';
+        head.appendChild(el);
 
-    el = document.createElement('td');
-    el.innerText = 'Remote type';
-    head.appendChild(el);
+        el = document.createElement('td');
+        el.innerText = 'Remote type';
+        head.appendChild(el);
 
-    el = document.createElement('td');
-    el.innerText = 'Requests sent';
-    head.appendChild(el);
+        el = document.createElement('td');
+        el.innerText = 'Requests sent';
+        head.appendChild(el);
 
-    el = document.createElement('td');
-    el.innerText = 'Responses received';
-    head.appendChild(el);
+        el = document.createElement('td');
+        el.innerText = 'Responses received';
+        head.appendChild(el);
 
-    el = document.createElement('td');
-    el.innerText = 'Requests received';
-    head.appendChild(el);
+        el = document.createElement('td');
+        el.innerText = 'Requests received';
+        head.appendChild(el);
 
-    el = document.createElement('td');
-    el.innerText = 'Responses sent';
-    head.appendChild(el);
+        el = document.createElement('td');
+        el.innerText = 'Responses sent';
+        head.appendChild(el);
 
-    el = document.createElement('td');
-    el.innerText = 'Active Connection';
-    head.appendChild(el);
+        el = document.createElement('td');
+        el.innerText = 'Active Connection';
+        head.appendChild(el);
 
-    iceContainer.appendChild(ice);
-    container.appendChild(iceContainer);
+        iceContainer.appendChild(ice);
+        container.appendChild(iceContainer);
+    }
 
     var table = document.createElement('table');
     head = document.createElement('tr');
