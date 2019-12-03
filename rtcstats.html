@@ -178,6 +178,12 @@ function createContainers(connid, url) {
     container.appendChild(connectionState);
 
     // for ice candidates
+    var iceContainer = document.createElement('details');
+    iceContainer.open = true;
+    summary = document.createElement('summary');
+    summary.innerText = 'ICE candidate grid';
+    iceContainer.appendChild(summary);
+
     var ice = document.createElement('table');
     ice.className = 'candidatepairtable';
     var head = document.createElement('tr');
@@ -219,7 +225,8 @@ function createContainers(connid, url) {
     el.innerText = 'Active Connection';
     head.appendChild(el);
 
-    container.appendChild(ice);
+    iceContainer.appendChild(ice);
+    container.appendChild(iceContainer);
 
     var table = document.createElement('table');
     head = document.createElement('tr');
@@ -232,7 +239,6 @@ function createContainers(connid, url) {
     el = document.createElement('th');
     el.innerText = url;
     head.appendChild(el);
-
     container.appendChild(table);
 
     var graphs = document.createElement('div');
