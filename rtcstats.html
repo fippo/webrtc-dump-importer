@@ -232,24 +232,22 @@ function createContainers(connid, url) {
         container.appendChild(iceContainer);
     }
 
-    var table = document.createElement('table');
-    head = document.createElement('tr');
-    table.appendChild(head);
+    var updateLogContainer = document.createElement('details');
+    updateLogContainer.open = true;
+    container.appendChild(updateLogContainer);
 
-    el = document.createElement('th');
-    el.innerText = 'connection ' + connid;
-    head.appendChild(el);
+    summary = document.createElement('summary');
+    summary.innerText = 'PeerConnection updates:';
+    updateLogContainer.appendChild(summary);
 
-    el = document.createElement('th');
-    el.innerText = url;
-    head.appendChild(el);
-    container.appendChild(table);
+    var updateLog = document.createElement('table');
+    updateLogContainer.appendChild(updateLog);
 
     var graphs = document.createElement('div');
     container.appendChild(graphs);
 
     containers[connid] = {
-        updateLog: table,
+        updateLog,
         iceConnectionState,
         connectionState,
         signalingState,
