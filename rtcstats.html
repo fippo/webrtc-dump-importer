@@ -7,6 +7,7 @@
             http://shop.highsoft.com/faq/non-commercial
         -->
         <script src="https://code.highcharts.com/highcharts.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.10/pako.js"></script>
         <script src="mangle.js"></script>
         <style>
 body, body svg text {
@@ -78,16 +79,21 @@ var fileFormat;
 function doImport(evt) {
   evt.target.disabled = 'disabled';
   var files = evt.target.files;
+  var file = files[0];
   var reader = new FileReader();
   reader.onload = (function(file) {
     return function(e) {
-      if (e.target.result.indexOf('\n') === -1) {
+      var result = e.target.result;
+      if (typeof result === 'object') {
+        result = pako.inflate(result, {to: 'string'});
+      }
+      if (result.indexOf('\n') === -1) {
         // old format v0
-        thelog = JSON.parse(e.target.result);
+        thelog = JSON.parse(result);
       } else {
         // new format, multiple lines
         var baseStats = {};
-        var lines = e.target.result.split('\n');
+        var lines = result.split('\n');
         var client = JSON.parse(lines.shift());
         fileFormat = client.fileFormat;
         client.peerConnections = {};
@@ -139,8 +145,12 @@ function doImport(evt) {
       }
       importUpdatesAndStats(thelog);
     };
-  })(files[0]);
-  reader.readAsText(files[0]);
+  })(file);
+  if (file.type === 'application/gzip') {
+    reader.readAsArrayBuffer(files[0]);
+  } else {
+    reader.readAsText(files[0]);
+  }
 }
 
 function createContainers(connid, url) {
