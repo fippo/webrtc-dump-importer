@@ -458,7 +458,7 @@ function processConnections(connectionIds, data) {
 
     var graphTypes = {};
     var graphSelectorContainer = document.createElement('div');
-    document.getElementById('container').appendChild(graphSelectorContainer);
+    containers[connid].graphs.appendChild(graphSelectorContainer);
 
     graphs[connid] = {};
     var reportobj = {};
@@ -534,20 +534,14 @@ function processConnections(connectionIds, data) {
         graphSelectorContainer.appendChild(checkbox);
 
         var label = document.createElement('label');
-        label.innerText = 'Turn on/off graphs for type=' + type;
+        label.innerText = 'Toggle graphs for type=' + type;
         graphSelectorContainer.appendChild(label);
 
         var selector = '.webrtc-' + type;
         checkbox.onchange = function() {
-            if (checkbox.checked) {
-                document.querySelectorAll(selector).forEach(function(el) {
-                    el.style.display = 'block';
-                });
-            } else {
-                document.querySelectorAll(selector).forEach(function(el) {
-                    el.style.display = 'none';
-                });
-            }
+            containers[connid].graphs.querySelectorAll(selector).forEach(function(el) {
+                el.open = checkbox.checked;
+            });
         };
     });
 }
