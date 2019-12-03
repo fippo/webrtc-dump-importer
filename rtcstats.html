@@ -104,6 +104,9 @@ function doImport(evt) {
                 case 'navigator.mediaDevices.getUserMedia':
                 case 'navigator.mediaDevices.getUserMediaOnSuccess':
                 case 'navigator.mediaDevices.getUserMediaOnFailure':
+                case 'navigator.mediaDevices.getDisplayMedia':
+                case 'navigator.mediaDevices.getDisplayMediaOnSuccess':
+                case 'navigator.mediaDevices.getDisplayMediaOnFailure':
                     client.getUserMedia.push({
                         time: time,
                         type: data[0],
@@ -154,6 +157,10 @@ function createContainers(connid, url) {
     iceConnectionState.id = 'iceconnectionstate_' + connid;
     iceConnectionState.textContent = 'ICE connection state:';
     container.appendChild(iceConnectionState);
+    var connectionState = document.createElement('div');
+    connectionState.id = 'connectionstate_' + connid;
+    connectionState.textContent = 'Connection state:';
+    container.appendChild(connectionState);
 
     // for ice candidates
     var ice = document.createElement('table');
@@ -215,8 +222,9 @@ function createContainers(connid, url) {
 
     containers[connid] = {
         updateLog: table,
-        iceConnectionState: iceConnectionState,
-        signalingState: signalingState,
+        iceConnectionState,
+        connectionState,
+        signalingState,
         candidates: ice,
     };
 
