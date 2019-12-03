@@ -155,8 +155,13 @@ function doImport(evt) {
 
 function createContainers(connid, url) {
     var el;
-    var container = document.createElement('div');
+    var container = document.createElement('details');
+    container.open = true;
     container.style.margin = '10px';
+
+    var summary = document.createElement('summary');
+    summary.innerText = 'Connection:' + connid + ' URL: ' + url;
+    container.appendChild(summary);
 
     // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
     var signalingState = document.createElement('div');
@@ -230,12 +235,16 @@ function createContainers(connid, url) {
 
     container.appendChild(table);
 
+    var graphs = document.createElement('div');
+    container.appendChild(graphs);
+
     containers[connid] = {
         updateLog: table,
         iceConnectionState,
         connectionState,
         signalingState,
         candidates: ice,
+        graphs,
     };
 
     return container;
@@ -460,7 +469,7 @@ function processConnections(connectionIds, data) {
         var container = document.createElement('details');
         container.open = true;
         container.classList.add('webrtc-' + graphType);
-        document.getElementById('container').appendChild(container);
+        containers[connid].graphs.appendChild(container);
 
         var title = connid + ' type=' + graphType + ' ' + reportname;
 
