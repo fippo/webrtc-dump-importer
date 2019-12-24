@@ -337,13 +337,18 @@ function createContainers(connid, url) {
     iceConnectionState.textContent = 'ICE connection state:';
     container.appendChild(iceConnectionState);
 
-    var ice = document.createElement('table');
-    ice.className = 'candidatepairtable';
-    container.appendChild(ice);
+    var connectionState = document.createElement('div');
+    connectionState.id = 'iceconnectionstate_' + connid;
+    connectionState.textContent = 'Connection state:';
+    container.appendChild(connectionState);
 
-    var table = document.createElement('table');
+    var candidates = document.createElement('table');
+    candidates.className = 'candidatepairtable';
+    container.appendChild(candidates);
+
+    var updateLog = document.createElement('table');
     head = document.createElement('tr');
-    table.appendChild(head);
+    updateLog.appendChild(head);
 
     el = document.createElement('th');
     el.innerText = 'connection ' + connid;
@@ -352,19 +357,20 @@ function createContainers(connid, url) {
     el = document.createElement('th');
     head.appendChild(el);
 
-    container.appendChild(table);
+    container.appendChild(updateLog);
 
     var graphs = document.createElement('div');
     container.appendChild(graphs);
 
     containers[connid] = {
-        updateLog: table,
-        iceConnectionState: iceConnectionState,
-        signalingState: signalingState,
-        candidates: ice,
-        url: url,
-        configuration: configuration,
-        graphs: graphs,
+        updateLog,
+        iceConnectionState,
+        connectionState,
+        signalingState,
+        candidates,
+        url,
+        configuration,
+        graphs,
     };
 
     return container;
@@ -487,6 +493,9 @@ function importUpdatesAndStats(data) {
             // update state displays
             if (event.type === 'iceConnectionStateChange') {
                 containers[connid].iceConnectionState.textContent += ' => ' + event.value;
+            }
+            if (event.type === 'connectionStateChange') {
+                containers[connid].connectionState.textContent += ' => ' + event.value;
             }
         });
         connection.updateLog.forEach(function(event) {
