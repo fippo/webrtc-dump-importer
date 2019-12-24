@@ -66,6 +66,7 @@ function createLegacyCandidateTable(container, stun) {
     // for ice candidates
     var head = document.createElement('tr');
 
+    var el;
     el = document.createElement('td');
     el.innerText = 'Local address';
     head.appendChild(el);
@@ -113,7 +114,6 @@ function createLegacyCandidateTable(container, stun) {
 
     for (t in stun) {
         var row = document.createElement('tr');
-        var el;
 
         el = document.createElement('td');
         el.innerText = stun[t].googLocalAddress;
@@ -169,11 +169,55 @@ function createLegacyCandidateTable(container, stun) {
 }
 
 function createSpecCandidateTable(container, allStats) {
+    var head = document.createElement('tr');
+
+    let el;
+    el = document.createElement('td');
+    el.innerText = 'Transport id';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'Candidate pair id';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'Candidate id';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = ''; // local/remote, leave empty.
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'type';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'address';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'port';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'protocol';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'priority';
+    head.appendChild(el);
+
+    el = document.createElement('td');
+    el.innerText = 'interface';
+    head.appendChild(el);
+
+    container.appendChild(head);
+
     const transports = {};
     const pairs = {};
     const candidates = {};
     let row;
-    let el;
     for (reportname in allStats) {
         t = reportname.split('-');
         comp = t.pop();
