@@ -371,8 +371,8 @@ function processConnections(connectionIds, data) {
                 Object.keys(stats[id]).forEach(function(name) {
                     if (name === 'timestamp') return;
                     //if (name === 'googMinPlayoutDelayMs') stats[id][name] = parseInt(stats[id][name], 10);
-                    if (stats[id].type === 'ssrc' && !isNaN(parseInt(stats[id][name], 10))) {
-                        stats[id][name] = parseInt(stats[id][name], 10);
+                    if (stats[id].type === 'ssrc' && !isNaN(parseFloat(stats[id][name]))) {
+                        stats[id][name] = parseFloat(stats[id][name]);
                     }
                     if (stats[id].type === 'ssrc' && name === 'ssrc') return; // ignore ssrc on ssrc reports.
                     if (typeof stats[id][name] === 'number') {
