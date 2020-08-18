@@ -482,7 +482,8 @@ function importUpdatesAndStats(data) {
         var container = createContainers(connid, connection.url);
 
         containers[connid].url.innerText = 'Origin: ' + connection.url;
-        containers[connid].configuration.innerText = 'Configuration: ' + JSON.stringify(connection.rtcConfiguration, null, ' ');
+        containers[connid].configuration.innerText = 'Configuration: ' + JSON.stringify(connection.rtcConfiguration, null, ' ') + '\n';
+        containers[connid].configuration.innerText = 'Legacy (chrome) constraints: ' + JSON.stringify(connection.constraints, null, ' ');
 
         document.getElementById('tables').appendChild(container);
 
