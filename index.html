@@ -542,158 +542,164 @@ function importUpdatesAndStats(data) {
             createLegacyCandidateTable(containers[connid].candidates, stun);
         }
     }
-
     // then, update the stats displays
-    for (connid in data.PeerConnections) {
-        connection = data.PeerConnections[connid];
-        graphs[connid] = {};
-        var reportobj = {};
-        var values;
-        for (reportname in connection.stats) {
-            t = reportname.split('-');
-            comp = t.pop();
+    processConnections(Object.keys(data.PeerConnections), data);
+}
 
-            stat = t.join('-');
-            if (!reportobj.hasOwnProperty(stat)) {
-                reportobj[stat] = [];
-            }
-            values = JSON.parse(connection.stats[reportname].values);
-            startTime = new Date(connection.stats[reportname].startTime).getTime();
-            endTime = new Date(connection.stats[reportname].endTime).getTime();
-            values = values.map(function(currentValue, index) {
-                return [startTime + 1000 * index, currentValue];
-            });
-            reportobj[stat].push([comp, values]);
+function processConnections(connectionIds, data) {
+    var connid = connectionIds.shift();
+    if (!connid) return;
+    window.setTimeout(processConnections, 0, connectionIds, data);
+
+    var connection = data.PeerConnections[connid];
+    graphs[connid] = {};
+    var reportobj = {};
+    var values;
+    for (reportname in connection.stats) {
+        t = reportname.split('-');
+        comp = t.pop();
+
+        stat = t.join('-');
+        if (!reportobj.hasOwnProperty(stat)) {
+            reportobj[stat] = [];
         }
-
-
-        // sort so we get a more useful order of graphs:
-        // * ssrcs
-        // * bwe
-        // * everything else alphabetically
-        var names = Object.keys(reportobj);
-        var ssrcs = names.filter(function(name) {
-            return name.indexOf('ssrc_') === 0;
-        }).sort(function(a, b) { // sort by send/recv and ssrc
-            var aParts = a.split('_');
-            var bParts = b.split('_');
-            if (aParts[2] === bParts[2]) {
-                return parseInt(aParts[1], 10) - parseInt(bParts[1], 10);
-            } else if (aParts[2] === 'send') return -1;
-            return 1;
+        values = JSON.parse(connection.stats[reportname].values);
+        startTime = new Date(connection.stats[reportname].startTime).getTime();
+        endTime = new Date(connection.stats[reportname].endTime).getTime();
+        values = values.map(function(currentValue, index) {
+            return [startTime + 1000 * index, currentValue];
         });
-        var bwe = names.filter(function(name) {
-            return name === 'bweforvideo';
-        });
-        names = names.filter(function(name) {
-            return name.indexOf('ssrc_') === -1 && name !== 'bweforvideo';
-        });
-        names = ssrcs.concat(bwe, names);
-        names.forEach(function(reportname) {
-            // ignore useless graphs
-            if (reportname.indexOf('Cand-') === 0 || reportname.indexOf('Channel') === 0) return;
-
-            var series = [];
-            var reports = reportobj[reportname];
-            reports.sort().forEach(function (report) {
-                if (report[0] === 'mediaType') {
-                    series.mediaType = report[1][0][1];
-                }
-                if (report[0] === 'googTrackId') {
-                    series.trackId = report[1][0][1];
-                }
-                if (report[0] === 'ssrc') {
-                    series.ssrc = report[1][0][1];
-                }
-                if (typeof(report[1][0][1]) !== 'number') return;
-                if (report[0] === 'bytesReceived' || report[0] === 'bytesSent') return;
-                if (report[0] === 'packetsReceived' || report[0] === 'packetsSent') return;
-                if (report[0] === 'googCaptureStartNtpTimeMs') return;
-
-                if (report[0] === 'bitsReceivedPerSecond' || report[0] === 'bitsSentPerSecond') { // convert to kbps
-                    report[0] = 'k' + report[0];
-                    report[1] = report[1].map(function(el) {
-                      return [el[0], Math.floor(el[1] / 1000)];
-                    });
-                }
-
-                var hiddenSeries = [
-                    'qpSum',
-                    'framesEncoded', 'framesDecoded',
-                    'audioInputLevel', 'audioOutputLevel',
-                    'googEchoCancellationEchoDelayStdDev',
-                    'totalSamplesDuration',
-                    'googDecodingCTN', 'googDecodingCNG', 'googDecodingNormal',
-                    'googDecodingPLCCNG', 'googDecodingCTSG', 'googDecodingMuted',
-                    'priority', 'port',
-                ];
-
-                series.push({
-                    name: report[0],
-                    visible: hiddenSeries.indexOf(report[0]) === -1,
-                    data: report[1]
-                });
-            });
-            if (series.length > 0) {
-                var container = document.createElement('details');
-                container.open = reportname.indexOf('ssrc_') === 0 ||
-                    reportname === 'bweforvideo' ||
-                    (reportname.indexOf('Conn-') === 0 && reportname.indexOf('-1-0') !== -1);
-                containers[connid].graphs.appendChild(container);
-                //document.getElementById('container').appendChild(container);
-
-                var title =
-                    (series.mediaType ? 'media kind=' + series.mediaType + ' ' : '') +
-                    (series.ssrc ? 'ssrc=0x' + series.ssrc.toString(16) + ' ' : '') +
-                    (series.trackId ? 'trackId=' + series.trackId + ' ' : '') +
-                    reportname + ' ';
-                var titleElement = document.createElement('summary');
-                titleElement.innerText = title;
-                container.appendChild(titleElement);
-
-                var d = document.createElement('div');
-                d.id = 'chart_' + Date.now();
-                d.classList.add('graph');
-                container.appendChild(d);
-                var graph = new Highcharts.Chart({
-                    title: {
-                        text: null
-                    },
-                    xAxis: {
-                        type: 'datetime'
-                    },
-                    yAxis: {
-                        min: series.mediaType ? 0 : undefined
-                    },
-                    chart: {
-                        zoomType: 'x',
-                        renderTo : d.id,
-                    },
-                    series: series
-                });
-                graphs[connid][reportname] = graph;
-
-                // expand the graph when opening
-                container.ontoggle = () => container.open && graph.reflow();
-
-                // draw checkbox to turn off everything
-                ((reportname, container, graph) => {
-                    var checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    container.appendChild(checkbox);
-                    var label = document.createElement('label');
-                    label.innerText = 'Turn on/off all data series'
-                    container.appendChild(label);
-                    checkbox.onchange = function() {
-                        graph.series.forEach(function(series) {
-                            series.setVisible(!checkbox.checked, false);
-                        });
-                        graph.redraw();
-                    };
-                })(reportname, container, graph);
-            }
-        });
+        reportobj[stat].push([comp, values]);
     }
+
+
+    // sort so we get a more useful order of graphs:
+    // * ssrcs
+    // * bwe
+    // * everything else alphabetically
+    var names = Object.keys(reportobj);
+    var ssrcs = names.filter(function(name) {
+        return name.indexOf('ssrc_') === 0;
+    }).sort(function(a, b) { // sort by send/recv and ssrc
+        var aParts = a.split('_');
+        var bParts = b.split('_');
+        if (aParts[2] === bParts[2]) {
+            return parseInt(aParts[1], 10) - parseInt(bParts[1], 10);
+        } else if (aParts[2] === 'send') return -1;
+        return 1;
+    });
+    var bwe = names.filter(function(name) {
+        return name === 'bweforvideo';
+    });
+    names = names.filter(function(name) {
+        return name.indexOf('ssrc_') === -1 && name !== 'bweforvideo';
+    });
+    names = ssrcs.concat(bwe, names);
+    names.forEach(function(reportname) {
+        // ignore useless graphs
+        if (reportname.indexOf('Cand-') === 0 || reportname.indexOf('Channel') === 0) return;
+        if (reportname.indexOf('RTCCodec_') === 0) return;
+
+        var series = [];
+        var reports = reportobj[reportname];
+        reports.sort().forEach(function (report) {
+            if (report[0] === 'mediaType') {
+                series.mediaType = report[1][0][1];
+            }
+            if (report[0] === 'googTrackId') {
+                series.trackId = report[1][0][1];
+            }
+            if (report[0] === 'ssrc') {
+                series.ssrc = report[1][0][1];
+            }
+            if (typeof(report[1][0][1]) !== 'number') return;
+            if (report[0] === 'bytesReceived' || report[0] === 'bytesSent') return;
+            if (report[0] === 'packetsReceived' || report[0] === 'packetsSent') return;
+            if (report[0] === 'googCaptureStartNtpTimeMs') return;
+
+            if (report[0] === 'bitsReceivedPerSecond' || report[0] === 'bitsSentPerSecond') { // convert to kbps
+                report[0] = 'k' + report[0];
+                report[1] = report[1].map(function(el) {
+                  return [el[0], Math.floor(el[1] / 1000)];
+                });
+            }
+
+            var hiddenSeries = [
+                'qpSum',
+                'framesEncoded', 'framesDecoded',
+                'audioInputLevel', 'audioOutputLevel',
+                'googEchoCancellationEchoDelayStdDev',
+                'totalSamplesDuration',
+                'googDecodingCTN', 'googDecodingCNG', 'googDecodingNormal',
+                'googDecodingPLCCNG', 'googDecodingCTSG', 'googDecodingMuted',
+                'priority', 'port',
+            ];
+
+            series.push({
+                name: report[0],
+                visible: hiddenSeries.indexOf(report[0]) === -1,
+                data: report[1]
+            });
+        });
+        if (series.length > 0) {
+            var container = document.createElement('details');
+            container.open = reportname.indexOf('ssrc_') === 0 ||
+                reportname === 'bweforvideo' ||
+                (reportname.indexOf('Conn-') === 0 && reportname.indexOf('-1-0') !== -1);
+            containers[connid].graphs.appendChild(container);
+            //document.getElementById('container').appendChild(container);
+
+            var title =
+                (series.mediaType ? 'media kind=' + series.mediaType + ' ' : '') +
+                (series.ssrc ? 'ssrc=0x' + series.ssrc.toString(16) + ' ' : '') +
+                (series.trackId ? 'trackId=' + series.trackId + ' ' : '') +
+                reportname + ' ';
+            var titleElement = document.createElement('summary');
+            titleElement.innerText = title;
+            container.appendChild(titleElement);
+
+            var d = document.createElement('div');
+            d.id = 'chart_' + Date.now();
+            d.classList.add('graph');
+            container.appendChild(d);
+            var graph = new Highcharts.Chart({
+                title: {
+                    text: null
+                },
+                xAxis: {
+                    type: 'datetime'
+                },
+                yAxis: {
+                    min: series.mediaType ? 0 : undefined
+                },
+                chart: {
+                    zoomType: 'x',
+                    renderTo : d.id,
+                },
+                series: series
+            });
+            graphs[connid][reportname] = graph;
+
+            // expand the graph when opening
+            container.ontoggle = () => container.open && graph.reflow();
+
+            // draw checkbox to turn off everything
+            ((reportname, container, graph) => {
+                var checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                container.appendChild(checkbox);
+                var label = document.createElement('label');
+                label.innerText = 'Turn on/off all data series'
+                container.appendChild(label);
+                checkbox.onchange = function() {
+                    graph.series.forEach(function(series) {
+                        series.setVisible(!checkbox.checked, false);
+                    });
+                    graph.redraw();
+                };
+            })(reportname, container, graph);
+        }
+    });
 }
         </script>
     </head>
