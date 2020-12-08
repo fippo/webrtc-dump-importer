@@ -1,0 +1,83 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Generate a video replay config from SDP</title>
+        <style>
+            textarea {
+                font-family: monospace;
+                width: 90%;
+                min-height: 300px;
+            }
+        </style>
+        <script src="https://wpt.live/webrtc/third_party/sdp/sdp.js"></script>
+        <script>
+function generateConfig(sdp) {
+    const config = [];
+    const sections = SDPUtils.getMediaSections(sdp);
+    sections.forEach(section => {
+        const configObject = {
+            render_delay_ms: 10,
+            target_delay_ms: 10,
+        };
+        const kind = SDPUtils.getKind(section);
+        if (kind !== 'video') {
+            return;
+        }
+        const rtpParameters = SDPUtils.parseRtpParameters(section);
+        configObject.decoders = rtpParameters.codecs.map(codec => {
+            return {
+                payload_name: codec.name,
+                payload_type: codec.payloadType,
+                codec_params: Object.keys(codec.parameters).map(name => ({[name]: codec.parameters[name]}))
+            };
+        });
+        configObject.rtp = {
+            extensions: [],
+            local_ssrc: 1,
+            nack: {
+                rtp_history_ms: 1000,
+            },
+            // red_payload_type
+            // ulpfec_payload_type
+            remb: true,
+            transport_cc: true,
+            rtcp_mode: 'RtcpMode::kReducedSize',
+            rtx_payload_types: rtpParameters.codecs.filter(c => c.name.toUpperCase() === 'RTX')
+                .map(c => ({[c.payloadType]: c.parameters.apt}))
+        }
+          
+          
+        const encodingParameters = SDPUtils.parseRtpEncodingParameters(section)[0];
+        if (encodingParameters) {
+            configObject.rtp.remote_ssrc = encodingParameters.ssrc;
+            if (encodingParameters.rtx) {
+                configObject.rtp.rtx_ssrc = encodingParameters.rtx.ssrc;
+            }
+        }
+        config.push(configObject);
+
+        rtpParameters.codecs.filter(c => ['RED', 'ULPFEC'].includes(c.name.toUpperCase())).forEach(c => {
+          if (c.name.toUpperCase() === 'RED') {
+            configObject.rtp.red_payload_type = c.payloadType;
+          } else {
+            configObject.rtp.ulpfec_payload_type = c.payloadType;
+          }
+        });
+    });
+
+    return config;
+}
+function convert() {
+    const sdp = document.getElementById('sdp').value;
+    document.getElementById('json').value = JSON.stringify(generateConfig(sdp), null, ' ');
+}
+        </script>
+    </head>
+    <body>
+        <textarea id="sdp" placeholder="sdp..."></textarea>
+        <br/>
+        <textarea id="json" placeholder="json!"></textarea>
+        <br/>
+        <button onclick="convert()">convert</button>
+    </body>
+</html>
