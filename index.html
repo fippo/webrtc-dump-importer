@@ -7,6 +7,7 @@
             http://shop.highsoft.com/faq/non-commercial
         -->
         <script src="https://code.highcharts.com/highcharts.js"></script>
+        <script src="sdp.js"></script>
         <style>
 body, body svg text {
     font-family: monospace;
@@ -423,11 +424,29 @@ function processTraceEvent(table, event) {
     el = document.createElement('summary');
     el.innerText = event.type;
     details.appendChild(el);
+    if (event.value.indexOf(', sdp: ') != -1) {
+        const [type, sdp] = event.value.substr(6).split(', sdp: ');
+        const sections = SDPUtils.splitSections(sdp);
 
-    el = document.createElement('pre');
-    el.innerText = event.value;
+        el.innerText += ' (type: "' + type + '", ' + sections.length + ' sections)';
+        el = document.createElement('pre');
+        sections.forEach(section => {
+            const lines = SDPUtils.splitLines(section);
+
+            const details = document.createElement('details');
+            details.open = true;
+            details.innerText = section;
+
+            const summary = document.createElement('summary');
+            summary.innerText = lines[0] + ' (' + (lines.length - 1) + ' more lines)';
+            details.appendChild(summary);
+            el.appendChild(details);
+        });
+    } else {
+        el = document.createElement('pre');
+        el.innerText = event.value;
+    }
     details.appendChild(el);
-
     el = document.createElement('td');
     el.appendChild(details);
 
