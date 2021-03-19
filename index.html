@@ -47,6 +47,10 @@ table details.srflx summary:after {
 }
 ice.style['background-color'] = '#ddd';
 ice.style['text-align'] = 'center';
+
+button.copyBtn {
+    border: 0px;
+}
         </style>
 
         <script>
@@ -429,6 +433,14 @@ function processTraceEvent(table, event) {
         const sections = SDPUtils.splitSections(sdp);
 
         el.innerText += ' (type: "' + type + '", ' + sections.length + ' sections)';
+        const copyBtn = document.createElement('button');
+        copyBtn.innerText = '\uD83D\uDCCB'; // clipboard
+        copyBtn.className = 'copyBtn';
+        copyBtn.onclick = () => {
+            navigator.clipboard.writeText(JSON.stringify({type, sdp}));
+        };
+        el.appendChild(copyBtn);
+
         el = document.createElement('pre');
         sections.forEach(section => {
             const lines = SDPUtils.splitLines(section);
@@ -622,7 +634,7 @@ function processConnections(connectionIds, data) {
         var series = [];
         var reports = reportobj[reportname];
         reports.sort().forEach(function (report) {
-            if (report[0] === 'mediaType') {
+            if (report[0] === 'mediaType' || report[0] === 'kind') {
                 series.mediaType = report[1][0][1];
             }
             if (report[0] === 'googTrackId') {
@@ -633,6 +645,7 @@ function processConnections(connectionIds, data) {
             }
             if (typeof(report[1][0][1]) !== 'number') return;
             if (report[0] === 'bytesReceived' || report[0] === 'bytesSent') return;
+            if (report[0] === 'headerBytesReceived' || report[0] === 'headerBytesSent') return;
             if (report[0] === 'packetsReceived' || report[0] === 'packetsSent') return;
             if (report[0] === 'googCaptureStartNtpTimeMs') return;
 
