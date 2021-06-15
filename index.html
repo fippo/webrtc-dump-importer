@@ -683,7 +683,7 @@ function processConnections(connectionIds, data) {
 
             var title =
                 (series.mediaType ? 'media kind=' + series.mediaType + ' ' : '') +
-                (series.ssrc ? 'ssrc=0x' + series.ssrc.toString(16) + ' ' : '') +
+                (series.ssrc ? 'ssrc=' + series.ssrc.toString(16) + ' ' : '') +
                 (series.trackId ? 'trackId=' + series.trackId + ' ' : '') +
                 reportname + ' ';
             var titleElement = document.createElement('summary');
