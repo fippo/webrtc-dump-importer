@@ -343,7 +343,7 @@ function createContainers(connid, url) {
     container.appendChild(iceConnectionState);
 
     var connectionState = document.createElement('div');
-    connectionState.id = 'iceconnectionstate_' + connid;
+    connectionState.id = 'connectionstate_' + connid;
     connectionState.textContent = 'Connection state:';
     container.appendChild(connectionState);
 
@@ -474,7 +474,20 @@ function processTraceEvent(table, event) {
     if (event.type.indexOf('Failure') !== -1) {
         row.style.backgroundColor = 'red';
     }
-    if (event.type === 'iceConnectionStateChange') {
+
+
+    if (event.type === 'iceconnectionstatechange' || event.type === 'connectionstatechange') {
+        switch(event.value) {
+        case 'connected':
+        case 'completed':
+            row.style.backgroundColor = 'green';
+            break;
+        case 'failed':
+            row.style.backgroundColor = 'red';
+            break;
+        }
+    } else if (event.type === 'iceConnectionStateChange') {
+        // Legacy variant, probably broken by now since the values changed.
         switch(event.value) {
         case 'ICEConnectionStateConnected':
         case 'ICEConnectionStateCompleted':
@@ -489,7 +502,15 @@ function processTraceEvent(table, event) {
         }
     }
 
-    if (event.type === 'onIceCandidate' || event.type === 'addIceCandidate') {
+    if (event.type === 'icecandidate' || event.type === 'addIceCandidate') {
+        if (event.value && event.value.candidate) {
+            var parts = event.value.split(',')[2].trim().split(' ');
+            if (parts && parts.length >= 9 && parts[7] === 'typ') {
+                details.classList.add(parts[8]);
+            }
+        }
+    } else if (event.type === 'onIceCandidate' || event.type === 'addIceCandidate') {
+        // Legacy variant.
         if (event.value && event.value.candidate) {
             var parts = event.value.split(',')[2].trim().split(' ');
             if (parts && parts.length >= 9 && parts[7] === 'typ') {
