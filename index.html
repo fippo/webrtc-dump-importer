@@ -444,13 +444,19 @@ function processTraceEvent(table, event) {
         el = document.createElement('pre');
         sections.forEach(section => {
             const lines = SDPUtils.splitLines(section);
+            const mid = lines
+                .filter(line => line.startsWith('a=mid:'))
+                .map(line => line.substr(6))[0];
 
             const details = document.createElement('details');
-            details.open = true;
+            // Fold by default for large SDP.
+            details.open = sections.length < 10;
             details.innerText = section;
 
             const summary = document.createElement('summary');
-            summary.innerText = lines[0] + ' (' + (lines.length - 1) + ' more lines)';
+            summary.innerText = lines[0] +
+                ' (' + (lines.length - 1) + ' more lines)' +
+                (mid ? ' mid=' + mid : '');
             details.appendChild(summary);
             el.appendChild(details);
         });
