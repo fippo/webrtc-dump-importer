@@ -396,24 +396,51 @@ function processGUM(data) {
 
     container.appendChild(table);
 
-    var columns = ['origin', 'pid', 'rid', 'audio', 'video'];
+    var columns = ['request_id', 'origin', 'pid', 'rid', 'audio', 'video', 'audio_track_info', 'video_track_info', 'error', 'error_message'];
+    var displayNames = {
+        audio: 'audio constraints',
+        video: 'video constraints',
+        audio_track_info: 'audio track',
+        video_track_info: 'video track',
+        error_message: 'error message',
+    };
     columns.forEach(function(name) {
         var el;
         el = document.createElement('th');
-        el.innerText = name;
+        el.innerText = displayNames[name] || name;
         head.appendChild(el);
     });
 
+    document.getElementById('tables').appendChild(container);
     data.forEach(function(event) {
+        var id = ['gum-row', event.pid, event.rid, event.request_id].join('-');
+        if (!event.origin) {
+            // Not a getUserMedia call back a response.
+            const existingRow = document.getElementById(id);
+            if (event.error) {
+                existingRow.childNodes[8].innerText = event.error;
+                existingRow.childNodes[9].innerText = event.error_message;
+            } else if (event.audio_track_info) {
+                existingRow.childNodes[6].innerText = event.audio_track_info;
+            } else if (event.video_track_info) {
+                existingRow.childNodes[7].innerText = event.video_track_info;
+            }
+            return;
+        }
         var row = document.createElement('tr');
+        row.id = id;
         columns.forEach(function(attribute) {
             var cell = document.createElement('td');
-            cell.innerText = event[attribute] || '(none)';
+            // getUserMedia request.
+            if (['audio', 'video'].includes(attribute)) {
+                cell.innerText = event.hasOwnProperty(attribute) ? (event[attribute] || 'true') : 'not set';
+            } else {
+                cell.innerText = event.hasOwnProperty(attribute) ? event[attribute] : '';
+            }
             row.appendChild(cell);
         });
         table.appendChild(row);
     });
-    document.getElementById('tables').appendChild(container);
 }
 
 function processTraceEvent(table, event) {
