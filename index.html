@@ -641,10 +641,18 @@ function processConnections(connectionIds, data) {
     var reportobj = {};
     var values;
     for (reportname in connection.stats) {
-        t = reportname.split('-');
-        comp = t.pop();
+        // special casing of computed stats, in particular [a-b]
+        if (reportname.indexOf('[') !== -1) {
+            t = reportname.split('[');
+            comp = '[' + t.pop();
+            stat = t.join('');
+            stat = stat.substr(0, stat.length - 1);
+        } else {
+            t = reportname.split('-');
+            comp = t.pop();
+            stat = t.join('-');
+        }
 
-        stat = t.join('-');
         if (!reportobj.hasOwnProperty(stat)) {
             reportobj[stat] = [];
         }
