@@ -415,14 +415,17 @@ function processGUM(data) {
     data.forEach(function(event) {
         var id = ['gum-row', event.pid, event.rid, event.request_id].join('-');
         if (!event.origin) {
-            // Not a getUserMedia call back a response.
+            // Not a getUserMedia call but a response.
             const existingRow = document.getElementById(id);
             if (event.error) {
                 existingRow.childNodes[8].innerText = event.error;
                 existingRow.childNodes[9].innerText = event.error_message;
-            } else if (event.audio_track_info) {
+                return;
+            }
+            if (event.audio_track_info) {
                 existingRow.childNodes[6].innerText = event.audio_track_info;
-            } else if (event.video_track_info) {
+            }
+            if (event.video_track_info) {
                 existingRow.childNodes[7].innerText = event.video_track_info;
             }
             return;
