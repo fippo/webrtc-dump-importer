@@ -1,7 +1,7 @@
 function doImport(evt) {
   evt.target.disabled = 'disabled';
-  var files = evt.target.files;
-  var reader = new FileReader();
+  const files = evt.target.files;
+  const reader = new FileReader();
   reader.onload = (function(file) {
     return function(e) {
       thelog = JSON.parse(e.target.result);
@@ -13,9 +13,9 @@ function doImport(evt) {
 
 function createLegacyCandidateTable(container, stun) {
     // for ice candidates
-    var head = document.createElement('tr');
+    const head = document.createElement('tr');
 
-    var el;
+    let el;
     el = document.createElement('td');
     el.innerText = 'Local address';
     head.appendChild(el);
@@ -62,7 +62,7 @@ function createLegacyCandidateTable(container, stun) {
     container.appendChild(head);
 
     for (t in stun) {
-        var row = document.createElement('tr');
+        const row = document.createElement('tr');
 
         el = document.createElement('td');
         el.innerText = stun[t].googLocalAddress;
@@ -118,7 +118,7 @@ function createLegacyCandidateTable(container, stun) {
 }
 
 function createSpecCandidateTable(container, allStats) {
-    var head = document.createElement('tr');
+    const head = document.createElement('tr');
 
     let el;
     el = document.createElement('td');
@@ -264,38 +264,38 @@ function createSpecCandidateTable(container, allStats) {
 }
 
 function createContainers(connid, url) {
-    var el;
-    var container = document.createElement('details');
+    let el;
+    const container = document.createElement('details');
     container.open = true;
     container.style.margin = '10px';
 
-    var summary = document.createElement('summary');
+    const summary = document.createElement('summary');
     summary.innerText = 'Connection:' + connid + ' URL: ' + url;
     container.appendChild(summary);
 
-    var configuration = document.createElement('div');
+    const configuration = document.createElement('div');
     container.appendChild(configuration);
 
     // show state transitions, like in https://webrtc.github.io/samples/src/content/peerconnection/states
-    var signalingState = document.createElement('div');
+    const signalingState = document.createElement('div');
     signalingState.id = 'signalingstate_' + connid;
     signalingState.textContent = 'Signaling state:';
     container.appendChild(signalingState);
-    var iceConnectionState = document.createElement('div');
+    const iceConnectionState = document.createElement('div');
     iceConnectionState.id = 'iceconnectionstate_' + connid;
     iceConnectionState.textContent = 'ICE connection state:';
     container.appendChild(iceConnectionState);
 
-    var connectionState = document.createElement('div');
+    const connectionState = document.createElement('div');
     connectionState.id = 'connectionstate_' + connid;
     connectionState.textContent = 'Connection state:';
     container.appendChild(connectionState);
 
-    var candidates = document.createElement('table');
+    const candidates = document.createElement('table');
     candidates.className = 'candidatepairtable';
     container.appendChild(candidates);
 
-    var updateLog = document.createElement('table');
+    const updateLog = document.createElement('table');
     head = document.createElement('tr');
     updateLog.appendChild(head);
 
@@ -308,7 +308,7 @@ function createContainers(connid, url) {
 
     container.appendChild(updateLog);
 
-    var graphs = document.createElement('div');
+    const graphs = document.createElement('div');
     container.appendChild(graphs);
 
     containers[connid] = {
@@ -326,22 +326,22 @@ function createContainers(connid, url) {
 }
 
 function processGUM(data) {
-    var container = document.createElement('details');
+    const container = document.createElement('details');
     container.open = true;
     container.style.margin = '10px';
 
-    var summary = document.createElement('summary');
+    const summary = document.createElement('summary');
     summary.innerText = 'getUserMedia calls';
     container.appendChild(summary);
 
-    var table = document.createElement('table');
-    var head = document.createElement('tr');
+    const table = document.createElement('table');
+    const head = document.createElement('tr');
     table.appendChild(head);
 
     container.appendChild(table);
 
-    var columns = ['request_id', 'origin', 'pid', 'rid', 'audio', 'video', 'audio_track_info', 'video_track_info', 'error', 'error_message'];
-    var displayNames = {
+    const columns = ['request_id', 'origin', 'pid', 'rid', 'audio', 'video', 'audio_track_info', 'video_track_info', 'error', 'error_message'];
+    const displayNames = {
         audio: 'audio constraints',
         video: 'video constraints',
         audio_track_info: 'audio track',
@@ -349,7 +349,7 @@ function processGUM(data) {
         error_message: 'error message',
     };
     columns.forEach(function(name) {
-        var el;
+        let el;
         el = document.createElement('th');
         el.innerText = displayNames[name] || name;
         head.appendChild(el);
@@ -357,7 +357,7 @@ function processGUM(data) {
 
     document.getElementById('tables').appendChild(container);
     data.forEach(function(event) {
-        var id = ['gum-row', event.pid, event.rid, event.request_id].join('-');
+        const id = ['gum-row', event.pid, event.rid, event.request_id].join('-');
         if (!event.origin) {
             // Not a getUserMedia call but a response.
             const existingRow = document.getElementById(id);
@@ -374,10 +374,10 @@ function processGUM(data) {
             }
             return;
         }
-        var row = document.createElement('tr');
+        const row = document.createElement('tr');
         row.id = id;
         columns.forEach(function(attribute) {
-            var cell = document.createElement('td');
+            const cell = document.createElement('td');
             // getUserMedia request.
             if (['audio', 'video'].includes(attribute)) {
                 cell.innerText = event.hasOwnProperty(attribute) ? (event[attribute] || 'true') : 'not set';
@@ -391,14 +391,14 @@ function processGUM(data) {
 }
 
 function processTraceEvent(table, event) {
-    var row = document.createElement('tr');
-    var el = document.createElement('td');
+    const row = document.createElement('tr');
+    let el = document.createElement('td');
     el.setAttribute('nowrap', '');
     el.innerText = event.time;
     row.appendChild(el);
 
     // recreate the HTML of webrtc-internals
-    var details = document.createElement('details');
+    const details = document.createElement('details');
     el = document.createElement('summary');
     el.innerText = event.type;
     details.appendChild(el);
@@ -501,9 +501,9 @@ function importUpdatesAndStats(data) {
     document.getElementById('userAgent').innerText = data.UserAgent;
 
     var connection;
-    var connid, reportname, stat;
-    var t, comp;
-    var stats;
+    let connid, reportname, stat;
+    let t, comp;
+    let stats;
 
     // FIXME: also display GUM calls (can they be correlated to addStream?)
     processGUM(data.getUserMedia);
@@ -511,7 +511,7 @@ function importUpdatesAndStats(data) {
     // first, display the updateLog
     for (connid in data.PeerConnections) {
         var connection = data.PeerConnections[connid];
-        var container = createContainers(connid, connection.url);
+        const container = createContainers(connid, connection.url);
 
         containers[connid].url.innerText = 'Origin: ' + connection.url;
         containers[connid].configuration.innerText = 'Configuration: ' + JSON.stringify(connection.rtcConfiguration, null, ' ') + '\n';
@@ -537,7 +537,7 @@ function importUpdatesAndStats(data) {
                 containers[connid].signalingState.textContent += ' => ' + event.value;
             }
         });
-        var stun = {};
+        const stun = {};
         for (reportname in connection.stats) {
             if (reportname.indexOf('Conn-') === 0) {
                 t = reportname.split('-');
@@ -579,14 +579,14 @@ function importUpdatesAndStats(data) {
 }
 
 function processConnections(connectionIds, data) {
-    var connid = connectionIds.shift();
+    const connid = connectionIds.shift();
     if (!connid) return;
     window.setTimeout(processConnections, 0, connectionIds, data);
 
-    var connection = data.PeerConnections[connid];
+    const connection = data.PeerConnections[connid];
     graphs[connid] = {};
-    var reportobj = {};
-    var values;
+    const reportobj = {};
+    let values;
     for (reportname in connection.stats) {
         // special casing of computed stats, in particular [a-b]
         if (reportname.indexOf('[') !== -1) {
@@ -617,18 +617,18 @@ function processConnections(connectionIds, data) {
     // * ssrcs
     // * bwe
     // * everything else alphabetically
-    var names = Object.keys(reportobj);
-    var ssrcs = names.filter(function(name) {
+    let names = Object.keys(reportobj);
+    const ssrcs = names.filter(function(name) {
         return name.indexOf('ssrc_') === 0;
     }).sort(function(a, b) { // sort by send/recv and ssrc
-        var aParts = a.split('_');
-        var bParts = b.split('_');
+        const aParts = a.split('_');
+        const bParts = b.split('_');
         if (aParts[2] === bParts[2]) {
             return parseInt(aParts[1], 10) - parseInt(bParts[1], 10);
         } else if (aParts[2] === 'send') return -1;
         return 1;
     });
-    var bwe = names.filter(function(name) {
+    const bwe = names.filter(function(name) {
         return name === 'bweforvideo';
     });
     names = names.filter(function(name) {
@@ -640,8 +640,8 @@ function processConnections(connectionIds, data) {
         if (reportname.indexOf('Cand-') === 0 || reportname.indexOf('Channel') === 0) return;
         if (reportname.indexOf('RTCCodec_') === 0) return;
 
-        var series = [];
-        var reports = reportobj[reportname];
+        const series = [];
+        const reports = reportobj[reportname];
         reports.sort().forEach(function (report) {
             if (report[0] === 'mediaType' || report[0] === 'kind') {
                 series.mediaType = report[1][0][1];
@@ -665,7 +665,7 @@ function processConnections(connectionIds, data) {
                 });
             }
 
-            var hiddenSeries = [
+            const hiddenSeries = [
                 'qpSum', 'estimatedPlayoutTimestamp',
                 'framesEncoded', 'framesDecoded',
                 'lastPacketReceivedTimestamp',
@@ -684,27 +684,27 @@ function processConnections(connectionIds, data) {
             });
         });
         if (series.length > 0) {
-            var container = document.createElement('details');
+            const container = document.createElement('details');
             container.open = reportname.indexOf('ssrc_') === 0 ||
                 reportname === 'bweforvideo' ||
                 (reportname.indexOf('Conn-') === 0 && reportname.indexOf('-1-0') !== -1);
             containers[connid].graphs.appendChild(container);
             //document.getElementById('container').appendChild(container);
 
-            var title =
+            const title =
                 (series.mediaType ? 'media kind=' + series.mediaType + ' ' : '') +
                 (series.ssrc ? 'ssrc=' + series.ssrc.toString(16) + ' ' : '') +
                 (series.trackId ? 'trackId=' + series.trackId + ' ' : '') +
                 reportname + ' ';
-            var titleElement = document.createElement('summary');
+            const titleElement = document.createElement('summary');
             titleElement.innerText = title;
             container.appendChild(titleElement);
 
-            var d = document.createElement('div');
+            const d = document.createElement('div');
             d.id = 'chart_' + Date.now();
             d.classList.add('graph');
             container.appendChild(d);
-            var graph = new Highcharts.Chart({
+            const graph = new Highcharts.Chart({
                 title: {
                     text: null
                 },
@@ -727,10 +727,10 @@ function processConnections(connectionIds, data) {
 
             // draw checkbox to turn off everything
             ((reportname, container, graph) => {
-                var checkbox = document.createElement('input');
+                const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 container.appendChild(checkbox);
-                var label = document.createElement('label');
+                const label = document.createElement('label');
                 label.innerText = 'Turn on/off all data series'
                 container.appendChild(label);
                 checkbox.onchange = function() {
