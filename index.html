@@ -8,6 +8,7 @@
         -->
         <script src="https://code.highcharts.com/highcharts.js"></script>
         <script src="sdp.js"></script>
+        <script src="import.js"></script>
         <style>
 body, body svg text {
     font-family: monospace;
@@ -52,11 +53,11 @@ button.copyBtn {
     border: 0px;
 }
         </style>
-        <script src="import.js"></script>
     </head>
     <body>
         <p>This is an import tool for dumps from chrome://webrtc-internals. See <a href="http://testrtc.com/webrtc-internals-parameters/">this blog post</a> for a lengthy description of what it does and how to interpret some of the data.
         <form><input type="file" onchange="doImport(event)"></form>
+        <input type="checkbox" id="useReferenceTime">Use RTCPeerConnection creation time as start time for all graphs.
         <div><b>User Agent:</b> <span id="userAgent"></span></div>
         <div id="tables">
         </div>

@@ -1,5 +1,7 @@
 function doImport(evt) {
-  evt.target.disabled = 'disabled';
+  evt.target.disabled = true;
+  document.getElementById('useReferenceTime').disabled = true;
+
   const files = evt.target.files;
   const reader = new FileReader();
   reader.onload = (function(file) {
@@ -584,6 +586,9 @@ function processConnections(connectionIds, data) {
     window.setTimeout(processConnections, 0, connectionIds, data);
 
     const connection = data.PeerConnections[connid];
+    const referenceTime = connection.updateLog.length
+        ? new Date(connection.updateLog[0].time).getTime()
+        : undefined;
     graphs[connid] = {};
     const reportobj = {};
     let values;
@@ -673,6 +678,18 @@ function processConnections(connectionIds, data) {
                 data: report[1]
             });
         });
+
+        // Optionally start all graphs at the same point in time.
+        if (document.getElementById('useReferenceTime').checked && referenceTime !== undefined) {
+            series
+                .filter(s => s.data[0].length)
+                .map(s => {
+                    console.log(s.name, s.data);
+                    if (s.data[0] !== referenceTime) {
+                        s.data.unshift([referenceTime, undefined]);
+                    }
+                });
+        }
         if (series.length > 0) {
             const container = document.createElement('details');
             container.open = reportname.indexOf('ssrc_') === 0 ||
