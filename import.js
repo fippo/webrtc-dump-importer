@@ -348,7 +348,7 @@ function processGUM(data) {
         video_track_info: 'video track',
         error_message: 'error message',
     };
-    columns.forEach(function(name) {
+    columns.forEach(name => {
         let el;
         el = document.createElement('th');
         el.innerText = displayNames[name] || name;
@@ -356,7 +356,7 @@ function processGUM(data) {
     });
 
     document.getElementById('tables').appendChild(container);
-    data.forEach(function(event) {
+    data.forEach(event => {
         const id = ['gum-row', event.pid, event.rid, event.request_id].join('-');
         if (!event.origin) {
             // Not a getUserMedia call but a response.
@@ -376,7 +376,7 @@ function processGUM(data) {
         }
         const row = document.createElement('tr');
         row.id = id;
-        columns.forEach(function(attribute) {
+        columns.forEach(attribute => {
             const cell = document.createElement('td');
             // getUserMedia request.
             if (['audio', 'video'].includes(attribute)) {
@@ -519,10 +519,10 @@ function importUpdatesAndStats(data) {
 
         document.getElementById('tables').appendChild(container);
 
-        connection.updateLog.forEach(function(event) {
+        connection.updateLog.forEach(event => {
             processTraceEvent(containers[connid].updateLog, event);
         });
-        connection.updateLog.forEach(function(event) {
+        connection.updateLog.forEach(event => {
             // update state displays
             if (event.type === 'iceConnectionStateChange') {
                 containers[connid].iceConnectionState.textContent += ' => ' + event.value;
@@ -531,7 +531,7 @@ function importUpdatesAndStats(data) {
                 containers[connid].connectionState.textContent += ' => ' + event.value;
             }
         });
-        connection.updateLog.forEach(function(event) {
+        connection.updateLog.forEach(event => {
             // FIXME: would be cool if a click on this would jump to the table row
             if (event.type === 'signalingStateChange') {
                 containers[connid].signalingState.textContent += ' => ' + event.value;
@@ -606,9 +606,7 @@ function processConnections(connectionIds, data) {
         values = JSON.parse(connection.stats[reportname].values);
         startTime = new Date(connection.stats[reportname].startTime).getTime();
         endTime = new Date(connection.stats[reportname].endTime).getTime();
-        values = values.map(function(currentValue, index) {
-            return [startTime + 1000 * index, currentValue];
-        });
+        values = values.map((currentValue, index) => [startTime + 1000 * index, currentValue]);
         reportobj[stat].push([comp, values]);
     }
 
@@ -618,9 +616,7 @@ function processConnections(connectionIds, data) {
     // * bwe
     // * everything else alphabetically
     let names = Object.keys(reportobj);
-    const ssrcs = names.filter(function(name) {
-        return name.indexOf('ssrc_') === 0;
-    }).sort(function(a, b) { // sort by send/recv and ssrc
+    const ssrcs = names.filter(name => name.indexOf('ssrc_') === 0).sort((a, b) => { // sort by send/recv and ssrc
         const aParts = a.split('_');
         const bParts = b.split('_');
         if (aParts[2] === bParts[2]) {
@@ -628,21 +624,17 @@ function processConnections(connectionIds, data) {
         } else if (aParts[2] === 'send') return -1;
         return 1;
     });
-    const bwe = names.filter(function(name) {
-        return name === 'bweforvideo';
-    });
-    names = names.filter(function(name) {
-        return name.indexOf('ssrc_') === -1 && name !== 'bweforvideo';
-    });
+    const bwe = names.filter(name => name === 'bweforvideo');
+    names = names.filter(name => name.indexOf('ssrc_') === -1 && name !== 'bweforvideo');
     names = ssrcs.concat(bwe, names);
-    names.forEach(function(reportname) {
+    names.forEach(reportname => {
         // ignore useless graphs
         if (reportname.indexOf('Cand-') === 0 || reportname.indexOf('Channel') === 0) return;
         if (reportname.indexOf('RTCCodec_') === 0) return;
 
         const series = [];
         const reports = reportobj[reportname];
-        reports.sort().forEach(function (report) {
+        reports.sort().forEach(report => {
             if (report[0] === 'mediaType' || report[0] === 'kind') {
                 series.mediaType = report[1][0][1];
             }
@@ -660,9 +652,7 @@ function processConnections(connectionIds, data) {
 
             if (report[0] === 'bitsReceivedPerSecond' || report[0] === 'bitsSentPerSecond') { // convert to kbps
                 report[0] = 'k' + report[0];
-                report[1] = report[1].map(function(el) {
-                  return [el[0], Math.floor(el[1] / 1000)];
-                });
+                report[1] = report[1].map(el => [el[0], Math.floor(el[1] / 1000)]);
             }
 
             const hiddenSeries = [
@@ -734,7 +724,7 @@ function processConnections(connectionIds, data) {
                 label.innerText = 'Turn on/off all data series'
                 container.appendChild(label);
                 checkbox.onchange = function() {
-                    graph.series.forEach(function(series) {
+                    graph.series.forEach(series => {
                         series.setVisible(!checkbox.checked, false);
                     });
                     graph.redraw();
