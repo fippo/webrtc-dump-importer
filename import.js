@@ -4,10 +4,10 @@ function doImport(evt) {
 
   const files = evt.target.files;
   const reader = new FileReader();
-  reader.onload = (function(file) {
-    return function(e) {
-      thelog = JSON.parse(e.target.result);
-      importUpdatesAndStats(thelog);
+  reader.onload = ((file) => {
+    return (e) => {
+      const theLog = JSON.parse(e.target.result);
+      importUpdatesAndStats(theLog);
     };
   })(files[0]);
   reader.readAsText(files[0]);
@@ -480,7 +480,7 @@ function processTraceEvent(table, event) {
 
     if (event.type === 'icecandidate' || event.type === 'addIceCandidate') {
         if (event.value && event.value.candidate) {
-            var parts = event.value.split(',')[2].trim().split(' ');
+            const parts = event.value.split(',')[2].trim().split(' ');
             if (parts && parts.length >= 9 && parts[7] === 'typ') {
                 details.classList.add(parts[8]);
             }
@@ -488,7 +488,7 @@ function processTraceEvent(table, event) {
     } else if (event.type === 'onIceCandidate' || event.type === 'addIceCandidate') {
         // Legacy variant.
         if (event.value && event.value.candidate) {
-            var parts = event.value.split(',')[2].trim().split(' ');
+            const parts = event.value.split(',')[2].trim().split(' ');
             if (parts && parts.length >= 9 && parts[7] === 'typ') {
                 details.classList.add(parts[8]);
             }
@@ -497,22 +497,17 @@ function processTraceEvent(table, event) {
     table.appendChild(row);
 }
 
-var graphs = {};
-var containers = {};
+const graphs = {};
+const containers = {};
 function importUpdatesAndStats(data) {
     document.getElementById('userAgent').innerText = data.UserAgent;
-
-    var connection;
-    let connid, reportname, stat;
-    let t, comp;
-    let stats;
 
     // FIXME: also display GUM calls (can they be correlated to addStream?)
     processGUM(data.getUserMedia);
 
     // first, display the updateLog
     for (connid in data.PeerConnections) {
-        var connection = data.PeerConnections[connid];
+        const connection = data.PeerConnections[connid];
         const container = createContainers(connid, connection.url);
 
         containers[connid].url.innerText = 'Origin: ' + connection.url;
@@ -542,11 +537,11 @@ function importUpdatesAndStats(data) {
         const stun = {};
         for (reportname in connection.stats) {
             if (reportname.indexOf('Conn-') === 0) {
-                t = reportname.split('-');
-                comp = t.pop();
+                let t = reportname.split('-');
+                const comp = t.pop();
                 t = t.join('-');
                 if (!stun[t]) stun[t] = {};
-                stats = JSON.parse(connection.stats[reportname].values);
+                const stats = JSON.parse(connection.stats[reportname].values);
                 switch(comp) {
                 case 'requestsSent':
                 case 'consentRequestsSent':
@@ -570,8 +565,8 @@ function importUpdatesAndStats(data) {
         }
 
         if (Object.keys(stun).length === 0) {
-            createSpecCandidateTable(containers[connid].candidates, connection.stats);
             // spec-stats. A bit more complicated... we need the transport and then the candidate pair and the local/remote candidates.
+            createSpecCandidateTable(containers[connid].candidates, connection.stats);
         } else {
             createLegacyCandidateTable(containers[connid].candidates, stun);
         }
