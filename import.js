@@ -6,11 +6,19 @@ function doImport(evt) {
   const reader = new FileReader();
   reader.onload = ((file) => {
     return (e) => {
-      const theLog = JSON.parse(e.target.result);
+      let result = e.target.result;
+      if (typeof result === 'object') {
+        result = pako.inflate(result, {to: 'string'});
+      }
+      const theLog = JSON.parse(result);
       importUpdatesAndStats(theLog);
     };
   })(files[0]);
-  reader.readAsText(files[0]);
+  if (files[0].type === 'application/gzip') {
+    reader.readAsArrayBuffer(files[0]);
+  } else {
+    reader.readAsText(files[0]);
+  }
 }
 
 function createLegacyCandidateTable(container, stun) {
