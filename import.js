@@ -16,162 +16,66 @@ function doImport(evt) {
 function createLegacyCandidateTable(container, stun) {
     // for ice candidates
     const head = document.createElement('tr');
-
-    let el;
-    el = document.createElement('td');
-    el.innerText = 'Local address';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'Local type';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'Local id';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'Remote address';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'Remote type';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'Remote id';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'Requests sent';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'Responses received';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'Requests received';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'Responses sent';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'Active Connection';
-    head.appendChild(el);
+    [
+        'Local address',
+        'Local type',
+        'Local id',
+        'Remote address',
+        'Remote type',
+        'Remite id',
+        'Requests sent', 'Responses received',
+        'Requests received', 'Responses sent',
+        'Active Connection',
+    ].forEach((text) => {
+        const el = document.createElement('td');
+        el.innerText = text;
+        head.appendChild(el);
+    });
     container.appendChild(head);
 
     for (t in stun) {
         const row = document.createElement('tr');
-
-        el = document.createElement('td');
-        el.innerText = stun[t].googLocalAddress;
-        row.appendChild(el);
-
-        el = document.createElement('td');
-        el.innerText = stun[t].googLocalCandidateType;
-        row.appendChild(el);
-
-        el = document.createElement('td');
-        el.innerText = stun[t].localCandidateId;
-        row.appendChild(el);
-
-        el = document.createElement('td');
-        el.innerText = stun[t].googRemoteAddress;
-        row.appendChild(el);
-
-        el = document.createElement('td');
-        el.innerText = stun[t].googRemoteCandidateType;
-        row.appendChild(el);
-
-        el = document.createElement('td');
-        el.innerText = stun[t].remoteCandidateId;
-        row.appendChild(el);
-
-        el = document.createElement('td');
-        el.innerText = stun[t].requestsSent;
-        row.appendChild(el);
-
-        el = document.createElement('td');
-        el.innerText = stun[t].responsesReceived;
-        row.appendChild(el);
-
-        el = document.createElement('td');
-        el.innerText = stun[t].requestsReceived;
-        row.appendChild(el);
-
-        el = document.createElement('td');
-        el.innerText = stun[t].responsesSent;
-        row.appendChild(el);
-
-        el = document.createElement('td');
-        el.innerText = stun[t].googActiveConnection;
-        row.appendChild(el);
-        /*
-        el = document.createElement('td');
-        el.innerText = stun[t].consentRequestsSent;
-        row.appendChild(el);
-        */
-
+        [
+            'googLocalAddress', 'googLocalCandidateType', 'localCandidateId',
+            'googRemoteAddress', 'googRemoteCandidateType', 'remoteCandidateId',
+            'requestsSent', 'responsesReceived',
+            'requestsReceived', 'responsesSent',
+            'googActiveConnection', /* consentRequestsSent, */
+        ].forEach((id) => {
+            const el = document.createElement('td');
+            el.innerText = stun[t][id];
+            row.appendChild(el);
+        });
         container.appendChild(row);
     }
 }
 
 function createSpecCandidateTable(container, allStats) {
     const head = document.createElement('tr');
-
-    let el;
-    el = document.createElement('td');
-    el.innerText = 'Transport id';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'Candidate pair id';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'Candidate id';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = ''; // local/remote, leave empty.
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'type';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'address';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'port';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'protocol';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'priority';
-    head.appendChild(el);
-
-    el = document.createElement('td');
-    el.innerText = 'interface';
-    head.appendChild(el);
-
+    [
+        'Transport id',
+        'Candidate pair id',
+        'Candidate id',
+        '', // local/remote, leave empty
+        'type',
+        'address',
+        'port',
+        'protocol',
+        'priority',
+        'interface',
+    ].forEach((text) => {
+        const el = document.createElement('td');
+        el.innerText = text;
+        head.appendChild(el);
+    });
     container.appendChild(head);
 
     const transports = {};
     const pairs = {};
     const candidates = {};
-    let row;
     for (reportname in allStats) {
-        t = reportname.split('-');
-        comp = t.pop();
+        let t = reportname.split('-');
+        const comp = t.pop();
         t = t.join('-');
         const stats = JSON.parse(allStats[reportname].values);
         if (reportname.indexOf('RTCTransport') === 0) {
@@ -194,9 +98,9 @@ function createSpecCandidateTable(container, allStats) {
         }
     }
     for (t in transports) {
-        row = document.createElement('tr');
+        let row = document.createElement('tr');
 
-        el = document.createElement('td');
+        let el = document.createElement('td');
         el.innerText = t;
         row.appendChild(el);
 
