@@ -640,8 +640,8 @@ function processConnections(connectionIds, data) {
         const series = [];
         const reports = reportobj[reportname];
         reports.sort().forEach(report => {
-            if (report[0] === 'mediaType' || report[0] === 'kind') {
-                series.mediaType = report[1][0][1];
+            if (report[0] === 'kind' || report[0] === 'mediaType') {
+                series.kind = report[1][0][1];
             }
             if (report[0] === 'googTrackId') {
                 series.trackId = report[1][0][1];
@@ -699,7 +699,7 @@ function processConnections(connectionIds, data) {
             //document.getElementById('container').appendChild(container);
 
             const title =
-                (series.mediaType ? 'media kind=' + series.mediaType + ' ' : '') +
+                (series.kind ? 'media kind=' + series.kind + ' ' : '') +
                 (series.ssrc ? 'ssrc=' + series.ssrc.toString(16) + ' ' : '') +
                 (series.trackId ? 'trackId=' + series.trackId + ' ' : '') +
                 reportname + ' ';
@@ -719,7 +719,7 @@ function processConnections(connectionIds, data) {
                     type: 'datetime'
                 },
                 yAxis: {
-                    min: series.mediaType ? 0 : undefined
+                    min: series.kind ? 0 : undefined
                 },
                 chart: {
                     zoomType: 'x',
