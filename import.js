@@ -649,6 +649,9 @@ function processConnections(connectionIds, data) {
             if (report[0] === 'ssrc') {
                 series.ssrc = report[1][0][1];
             }
+            if (report[0] === 'label') { // for datachannels.
+                series.label = report[1][0][1];
+            }
             if (typeof(report[1][0][1]) !== 'number') return;
             if (report[0] === 'bytesReceived' || report[0] === 'bytesSent') return;
             if (report[0] === 'headerBytesReceived' || report[0] === 'headerBytesSent') return;
@@ -698,11 +701,13 @@ function processConnections(connectionIds, data) {
             containers[connid].graphs.appendChild(container);
             //document.getElementById('container').appendChild(container);
 
-            const title =
-                (series.kind ? 'media kind=' + series.kind + ' ' : '') +
-                (series.ssrc ? 'ssrc=' + series.ssrc.toString(16) + ' ' : '') +
-                (series.trackId ? 'trackId=' + series.trackId + ' ' : '') +
-                reportname + ' ';
+            const title = [
+                reportname,
+                (series.kind ? 'media kind=' + series.kind : ''),
+                (series.ssrc ? 'ssrc=' + series.ssrc.toString(16) : ''),
+                (series.trackId ? 'trackId=' + series.trackId : ''),
+                (series.label ? 'label=' + series.label : ''),
+            ].filter(s => s !== '').join(' ');
             const titleElement = document.createElement('summary');
             titleElement.innerText = title;
             container.appendChild(titleElement);
