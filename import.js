@@ -86,7 +86,7 @@ function createSpecCandidateTable(container, allStats) {
         const comp = t.pop();
         t = t.join('-');
         const stats = JSON.parse(allStats[reportname].values);
-        if (reportname.indexOf('RTCTransport') === 0) {
+        if (reportname.startsWith('RTCTransport')) {
             if (!transports[t]) transports[t] = {};
             switch(comp) {
             case 'bytesSent':
@@ -97,10 +97,10 @@ function createSpecCandidateTable(container, allStats) {
             default:
                 // console.log(reportname, comp, stats);
             }
-        } else if (reportname.indexOf('RTCIceCandidatePair') === 0) {
+        } else if (reportname.startsWith('RTCIceCandidatePair')) {
             if (!pairs[t]) pairs[t] = {};
             pairs[t][comp] = stats[stats.length - 1];
-        } else if (reportname.indexOf('RTCIceCandidate') === 0) {
+        } else if (reportname.startsWith('RTCIceCandidate')) {
             if (!candidates[t]) candidates[t] = {};
             candidates[t][comp] = stats[stats.length -  1]
         }
@@ -358,8 +358,8 @@ function processTraceEvent(table, event) {
 
     row.appendChild(el);
 
-    // guess what, if the event type contains 'Failure' one could use css to highlight it
-    if (event.type.indexOf('Failure') !== -1) {
+    // guess what, if the event type ends with 'Failure' one could use css to highlight it
+    if (event.type.endsWith('Failure')) {
         row.style.backgroundColor = 'red';
     }
 
@@ -448,7 +448,7 @@ function importUpdatesAndStats(data) {
         });
         const stun = {};
         for (reportname in connection.stats) {
-            if (reportname.indexOf('Conn-') === 0) {
+            if (reportname.startsWith('Conn-')) {
                 let t = reportname.split('-');
                 const comp = t.pop();
                 t = t.join('-');
@@ -528,7 +528,7 @@ function processConnections(connectionIds, data) {
     // * bwe
     // * everything else alphabetically
     let names = Object.keys(reportobj);
-    const ssrcs = names.filter(name => name.indexOf('ssrc_') === 0).sort((a, b) => { // sort by send/recv and ssrc
+    const ssrcs = names.filter(name => name.startsWith('ssrc_')).sort((a, b) => { // sort by send/recv and ssrc
         const aParts = a.split('_');
         const bParts = b.split('_');
         if (aParts[2] === bParts[2]) {
@@ -537,12 +537,12 @@ function processConnections(connectionIds, data) {
         return 1;
     });
     const bwe = names.filter(name => name === 'bweforvideo');
-    names = names.filter(name => name.indexOf('ssrc_') === -1 && name !== 'bweforvideo');
+    names = names.filter(name => name.startsWith('ssrc_') && name !== 'bweforvideo');
     names = ssrcs.concat(bwe, names);
     names.forEach(reportname => {
         // ignore useless graphs
-        if (reportname.indexOf('Cand-') === 0 || reportname.indexOf('Channel') === 0) return;
-        if (reportname.indexOf('RTCCodec_') === 0) return;
+        if (reportname.startsWith('Cand-') || reportname.startsWith('Channel')) return;
+        if (reportname.startsWith('RTCCodec_')) return;
 
         const series = [];
         const reports = reportobj[reportname];
@@ -602,9 +602,9 @@ function processConnections(connectionIds, data) {
         }
         if (series.length > 0) {
             const container = document.createElement('details');
-            container.open = reportname.indexOf('ssrc_') === 0 ||
+            container.open = reportname.startsWith('ssrc_') ||
                 reportname === 'bweforvideo' ||
-                (reportname.indexOf('Conn-') === 0 && reportname.indexOf('-1-0') !== -1);
+                (reportname.startsWith('Conn-') && reportname.indexOf('-1-0') !== -1);
             containers[connid].graphs.appendChild(container);
             //document.getElementById('container').appendChild(container);
 
