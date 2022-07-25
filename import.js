@@ -537,7 +537,7 @@ function processConnections(connectionIds, data) {
         return 1;
     });
     const bwe = names.filter(name => name === 'bweforvideo');
-    names = names.filter(name => name.startsWith('ssrc_') && name !== 'bweforvideo');
+    names = names.filter(name => !name.startsWith('ssrc_') && name !== 'bweforvideo');
     names = ssrcs.concat(bwe, names);
     names.forEach(reportname => {
         // ignore useless graphs
