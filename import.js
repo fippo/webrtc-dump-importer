@@ -433,16 +433,16 @@ function importUpdatesAndStats(data) {
         });
         connection.updateLog.forEach(event => {
             // update state displays
-            if (event.type === 'iceConnectionStateChange') {
+            if (event.type === 'iceconnectionstatechange') {
                 containers[connid].iceConnectionState.textContent += ' => ' + event.value;
             }
-            if (event.type === 'connectionStateChange') {
+            if (event.type === 'connectionstatechange') {
                 containers[connid].connectionState.textContent += ' => ' + event.value;
             }
         });
         connection.updateLog.forEach(event => {
             // FIXME: would be cool if a click on this would jump to the table row
-            if (event.type === 'signalingStateChange') {
+            if (event.type === 'signalingstatechange') {
                 containers[connid].signalingState.textContent += ' => ' + event.value;
             }
         });
