@@ -519,7 +519,7 @@ function processConnections(connectionIds, data) {
         startTime = new Date(connection.stats[reportname].startTime).getTime();
         endTime = new Date(connection.stats[reportname].endTime).getTime();
         values = values.map((currentValue, index) => [startTime + 1000 * index, currentValue]);
-        reportobj[stat].push([comp, values]);
+        reportobj[stat].push([comp, values, connection.stats[reportname].statsType]);
     }
 
 
@@ -540,12 +540,16 @@ function processConnections(connectionIds, data) {
     names = names.filter(name => !name.startsWith('ssrc_') && name !== 'bweforvideo');
     names = ssrcs.concat(bwe, names);
     names.forEach(reportname => {
+        const reports = reportobj[reportname];
+        const statsType = reports[0][2];
         // ignore useless graphs
+        if (['local-candidate', 'remote-candidate', 'codec'].includes(statsType)) return;
         if (reportname.startsWith('Cand-') || reportname.startsWith('Channel')) return;
+        if (reportname.startsWith('RTCIceCandidate_')) return;
         if (reportname.startsWith('RTCCodec_')) return;
 
         const series = [];
-        const reports = reportobj[reportname];
+        const plotBands = [];
         reports.sort().forEach(report => {
             if (report[0] === 'kind' || report[0] === 'mediaType') {
                 series.kind = report[1][0][1];
@@ -558,6 +562,22 @@ function processConnections(connectionIds, data) {
             }
             if (report[0] === 'label') { // for datachannels.
                 series.label = report[1][0][1];
+            }
+            if (report[0] === 'active' && report[2] === 'outbound-rtp') {
+                // set up a x-axis plotbands:
+                // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
+                report[1].filter((el, index, values) => {
+                    return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
+                }).forEach((item, index, values) => {
+                    if (item[1] === true) {
+                        return;
+                    }
+                    plotBands.push({
+                        from: item[0],
+                        to: (values[index + 1] || [])[0]
+                    });
+                });
+                return;
             }
             if (typeof(report[1][0][1]) !== 'number') return;
             if (report[0] === 'bytesReceived' || report[0] === 'bytesSent') return;
@@ -628,7 +648,8 @@ function processConnections(connectionIds, data) {
                     text: null
                 },
                 xAxis: {
-                    type: 'datetime'
+                    type: 'datetime',
+                    plotBands,
                 },
                 yAxis: {
                     min: series.kind ? 0 : undefined
