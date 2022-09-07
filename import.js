@@ -583,6 +583,14 @@ function processConnections(connectionIds, data) {
             if (report[0] === 'bytesReceived' || report[0] === 'bytesSent') return;
             if (report[0] === 'headerBytesReceived' || report[0] === 'headerBytesSent') return;
             if (report[0] === 'packetsReceived' || report[0] === 'packetsSent') return;
+            if (report[0] === 'mid') {
+                series.mid = report[1][0][1];
+                return;
+            }
+            if (report[0]  === 'rid') {
+                series.rid = report[1][0][1];
+                return;
+            }
             if (report[0] === 'googCaptureStartNtpTimeMs') return;
 
             if (report[0] === 'bitsReceivedPerSecond' || report[0] === 'bitsSentPerSecond') { // convert to kbps
@@ -631,7 +639,9 @@ function processConnections(connectionIds, data) {
             const title = [
                 reportname,
                 (series.kind ? 'media kind=' + series.kind : ''),
-                (series.ssrc ? 'ssrc=' + series.ssrc.toString(16) : ''),
+                (series.ssrc !== undefined ? 'ssrc=' + series.ssrc.toString(16) : ''),
+                (series.mid !== undefined ? 'mid=' + series.mid : ''),
+                (series.rid !== undefined ? 'rid=' + series.rid : ''),
                 (series.trackId ? 'trackId=' + series.trackId : ''),
                 (series.label ? 'label=' + series.label : ''),
             ].filter(s => s !== '').join(' ');
