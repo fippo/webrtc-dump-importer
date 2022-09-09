@@ -30,7 +30,7 @@ function createLegacyCandidateTable(container, stun) {
         'Local id',
         'Remote address',
         'Remote type',
-        'Remite id',
+        'Remote id',
         'Requests sent', 'Responses received',
         'Requests received', 'Responses sent',
         'Active Connection',
@@ -85,8 +85,9 @@ function createSpecCandidateTable(container, allStats) {
         let t = reportname.split('-');
         const comp = t.pop();
         t = t.join('-');
+        const statsType = allStats[reportname].statsType;
         const stats = JSON.parse(allStats[reportname].values);
-        if (reportname.startsWith('RTCTransport')) {
+        if (statsType === 'transport' || reportname.startsWith('RTCTransport')) {
             if (!transports[t]) transports[t] = {};
             switch(comp) {
             case 'bytesSent':
@@ -97,10 +98,10 @@ function createSpecCandidateTable(container, allStats) {
             default:
                 // console.log(reportname, comp, stats);
             }
-        } else if (reportname.startsWith('RTCIceCandidatePair')) {
+        } else if (statsType === 'candidate-pair' || reportname.startsWith('RTCIceCandidatePair')) {
             if (!pairs[t]) pairs[t] = {};
             pairs[t][comp] = stats[stats.length - 1];
-        } else if (reportname.startsWith('RTCIceCandidate')) {
+        } else if (['local-candidate', 'remote-candidate'].includes(statsType) || reportname.startsWith('RTCIceCandidate')) {
             if (!candidates[t]) candidates[t] = {};
             candidates[t][comp] = stats[stats.length -  1]
         }
@@ -549,6 +550,7 @@ function processConnections(connectionIds, data) {
         if (reportname.startsWith('RTCCodec_')) return;
 
         const series = [];
+        series.statsType = statsType;
         const plotBands = [];
         reports.sort().forEach(report => {
             if (report[0] === 'kind' || report[0] === 'mediaType') {
@@ -637,13 +639,14 @@ function processConnections(connectionIds, data) {
             //document.getElementById('container').appendChild(container);
 
             const title = [
-                reportname,
-                (series.kind ? 'media kind=' + series.kind : ''),
-                (series.ssrc !== undefined ? 'ssrc=' + series.ssrc.toString(16) : ''),
-                (series.mid !== undefined ? 'mid=' + series.mid : ''),
-                (series.rid !== undefined ? 'rid=' + series.rid : ''),
-                (series.trackId ? 'trackId=' + series.trackId : ''),
-                (series.label ? 'label=' + series.label : ''),
+                series.statsType ? 'type=' + series.statsType : '',
+                series.kind ? 'media kind=' + series.kind : '',
+                series.ssrc !== undefined ? 'ssrc=' + series.ssrc.toString(16) : '',
+                series.mid !== undefined ? 'mid=' + series.mid : '',
+                series.rid !== undefined ? 'rid=' + series.rid : '',
+                series.trackId ? 'trackId=' + series.trackId : '',
+                series.label ? 'label=' + series.label : '',
+                'id=' + reportname,
             ].filter(s => s !== '').join(' ');
             const titleElement = document.createElement('summary');
             titleElement.innerText = title;
