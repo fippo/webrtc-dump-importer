@@ -581,6 +581,9 @@ function processConnections(connectionIds, data) {
                 });
                 return;
             }
+            if (['encoderImplementation', 'decoderImplementation'].includes(report[0])) {
+                series[report[0]] = report[1][0][1];
+            }
             if (typeof(report[1][0][1]) !== 'number') return;
             if (report[0] === 'bytesReceived' || report[0] === 'bytesSent') return;
             if (report[0] === 'headerBytesReceived' || report[0] === 'headerBytesSent') return;
@@ -646,6 +649,8 @@ function processConnections(connectionIds, data) {
                 series.rid !== undefined ? 'rid=' + series.rid : '',
                 series.trackId ? 'trackId=' + series.trackId : '',
                 series.label ? 'label=' + series.label : '',
+                series.encoderImplementation ? 'encoderImplementation="' + series.encoderImplementation + '"': '',
+                series.decoderImplementation ? 'decoderImplementation="' + series.decoderImplementation + '"': '',
                 'id=' + reportname,
             ].filter(s => s !== '').join(' ');
             const titleElement = document.createElement('summary');
