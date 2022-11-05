@@ -166,6 +166,9 @@ function createSpecCandidateTable(container, allStats) {
 
                 el = document.createElement('td');
                 el.innerText = candidate.priority;
+                if (candidate.relayProtocol) {
+                    el.innerText += ' ' + candidate.relayProtocol;
+                }
                 row.appendChild(el);
 
                 el = document.createElement('td');
