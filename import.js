@@ -396,17 +396,17 @@ function processTraceEvent(table, event) {
 
     if (event.type === 'icecandidate' || event.type === 'addIceCandidate') {
         if (event.value) {
-            const parts = event.value.split(',')[2].trim().split(' ');
-            if (parts && parts.length >= 9 && parts[7] === 'typ') {
-                details.classList.add(parts[8]);
+            const candidate = SDPUtils.parseCandidate(event.value.split(',')[2].substr(11).trim());
+            if (candidate && candidate.type) {
+                details.classList.add(candidate.type);
             }
         }
     } else if (event.type === 'onIceCandidate' || event.type === 'addIceCandidate') {
         // Legacy variant.
         if (event.value) {
-            const parts = event.value.split(',')[2].trim().split(' ');
-            if (parts && parts.length >= 9 && parts[7] === 'typ') {
-                details.classList.add(parts[8]);
+            const candidate = SDPUtils.parseCandidate(event.value.split(',')[2].substr(11).trim());
+            if (candidate && candidate.type) {
+                details.classList.add(candidate.type);
             }
         }
     }
