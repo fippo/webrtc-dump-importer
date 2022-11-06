@@ -395,7 +395,7 @@ function processTraceEvent(table, event) {
     }
 
     if (event.type === 'icecandidate' || event.type === 'addIceCandidate') {
-        if (event.value && event.value.candidate) {
+        if (event.value) {
             const parts = event.value.split(',')[2].trim().split(' ');
             if (parts && parts.length >= 9 && parts[7] === 'typ') {
                 details.classList.add(parts[8]);
@@ -403,7 +403,7 @@ function processTraceEvent(table, event) {
         }
     } else if (event.type === 'onIceCandidate' || event.type === 'addIceCandidate') {
         // Legacy variant.
-        if (event.value && event.value.candidate) {
+        if (event.value) {
             const parts = event.value.split(',')[2].trim().split(' ');
             if (parts && parts.length >= 9 && parts[7] === 'typ') {
                 details.classList.add(parts[8]);
