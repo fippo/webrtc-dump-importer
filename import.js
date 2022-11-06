@@ -320,6 +320,18 @@ function processTraceEvent(table, event) {
     el = document.createElement('summary');
     el.innerText = event.type;
     details.appendChild(el);
+
+    if (event.type === 'icecandidate' || event.type === 'addIceCandidate') {
+        if (event.value) {
+            const parts = event.value.split(', ');
+            el.innerText += ' (' + parts[0] + ' \"' + parts[1] + '\"';
+            const candidate = SDPUtils.parseCandidate(parts[2].substr(11).trim());
+            if (candidate) {
+                el.innerText += ' type:' + candidate.type;
+            }
+            el.innerText += ')';
+        }
+    }
     if (event.value.indexOf(', sdp: ') != -1) {
         const [type, sdp] = event.value.substr(6).split(', sdp: ');
         const sections = SDPUtils.splitSections(sdp);
@@ -394,22 +406,6 @@ function processTraceEvent(table, event) {
         }
     }
 
-    if (event.type === 'icecandidate' || event.type === 'addIceCandidate') {
-        if (event.value) {
-            const candidate = SDPUtils.parseCandidate(event.value.split(',')[2].substr(11).trim());
-            if (candidate && candidate.type) {
-                details.classList.add(candidate.type);
-            }
-        }
-    } else if (event.type === 'onIceCandidate' || event.type === 'addIceCandidate') {
-        // Legacy variant.
-        if (event.value) {
-            const candidate = SDPUtils.parseCandidate(event.value.split(',')[2].substr(11).trim());
-            if (candidate && candidate.type) {
-                details.classList.add(candidate.type);
-            }
-        }
-    }
     table.appendChild(row);
 }
 
