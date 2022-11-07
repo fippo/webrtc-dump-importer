@@ -226,7 +226,19 @@ function createContainers(connid, url) {
 
     container.appendChild(updateLog);
 
+    const graphHeader = document.createElement('div');
     const graphs = document.createElement('div');
+
+    const label = document.createElement('label');
+    label.innerText = 'Filter graphs by type including ';
+    graphHeader.appendChild(label);
+    const input = document.createElement('input');
+    input.placeholder = 'separate multiple values by `,`';
+    input.size = 25;
+    input.oninput = (e) => filterStatsGraphs(e, graphs);
+    graphHeader.appendChild(input);
+
+    container.appendChild(graphHeader);
     container.appendChild(graphs);
 
     containers[connid] = {
@@ -634,11 +646,13 @@ function processConnections(connectionIds, data) {
         }
         if (series.length > 0) {
             const container = document.createElement('details');
+            if (series.statsType) {
+                container.attributes['data-statsType'] = series.statsType;
+            }
             container.open = reportname.startsWith('ssrc_') ||
                 reportname === 'bweforvideo' ||
                 (reportname.startsWith('Conn-') && reportname.indexOf('-1-0') !== -1);
             containers[connid].graphs.appendChild(container);
-            //document.getElementById('container').appendChild(container);
 
             const title = [
                 series.statsType ? 'type=' + series.statsType : '',
@@ -699,4 +713,21 @@ function processConnections(connectionIds, data) {
             })(reportname, container, graph);
         }
     });
+}
+
+function filterStatsGraphs(event, container) {
+  const filter =  event.target.value;
+  const filters = filter.split(',');
+    container.childNodes.forEach(node => {
+    if (node.nodeName !== 'DETAILS') {
+      return;
+    }
+    const statsType = node.attributes['data-statsType'];
+    if (!filter || filters.includes(statsType) ||
+        filters.find(f => statsType.includes(f))) {
+      node.style.display = 'block';
+    } else {
+      node.style.display = 'none';
+    }
+  });
 }
