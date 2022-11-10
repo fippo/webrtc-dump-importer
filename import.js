@@ -336,7 +336,7 @@ function processTraceEvent(table, event) {
     if (event.type === 'icecandidate' || event.type === 'addIceCandidate') {
         if (event.value) {
             const parts = event.value.split(', ');
-            el.innerText += ' (' + parts[0] + ' \"' + parts[1] + '\"';
+            el.innerText += ' (' + parts[0] + ' ' + parts[1];
             const candidate = SDPUtils.parseCandidate(parts[2].substr(11).trim());
             if (candidate) {
                 el.innerText += ' type:' + candidate.type;
