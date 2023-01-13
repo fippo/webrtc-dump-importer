@@ -270,8 +270,10 @@ function processGUM(data) {
 
     container.appendChild(table);
 
-    const columns = ['request_id', 'origin', 'pid', 'rid', 'audio', 'video', 'audio_track_info', 'video_track_info', 'error', 'error_message'];
+    const columns = ['request_type', 'origin', 'pid', 'rid', 'audio', 'video', 'audio_track_info', 'video_track_info', 'error', 'error_message'];
     const displayNames = {
+        request_id: 'id',
+        reqest_type: 'type',
         audio: 'audio constraints',
         video: 'video constraints',
         audio_track_info: 'audio track',
