@@ -69,7 +69,7 @@ function createSpecCandidateTable(container, allStats) {
         'address',
         'port',
         'protocol',
-        'priority',
+        'priority / relayProtocol',
         'interface',
     ].forEach((text) => {
         const el = document.createElement('td');
@@ -117,6 +117,11 @@ function createSpecCandidateTable(container, allStats) {
         el.innerText = transports[t].selectedCandidatePairId;
         row.appendChild(el);
 
+        for (let i = 2; i < head.childElementCount; i++) {
+            el = document.createElement('td');
+            row.appendChild(el);
+        }
+
         container.appendChild(row);
 
         for (p in pairs) {
@@ -132,6 +137,13 @@ function createSpecCandidateTable(container, allStats) {
 
             container.appendChild(row);
             // console.log('PAIR', p, pair);
+            for (let i = 2; i < head.childElementCount; i++) {
+                el = document.createElement('td');
+                if (i === 8) {
+                    el.innerText = pair.priority;
+                }
+                row.appendChild(el);
+            }
 
             for (c in candidates) {
                 if (!(c === pair.localCandidateId || c === pair.remoteCandidateId)) continue;
