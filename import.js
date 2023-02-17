@@ -354,6 +354,7 @@ function processTraceEvent(table, event) {
             const candidate = SDPUtils.parseCandidate(parts[2].substr(11).trim());
             if (candidate) {
                 el.innerText += ' type:' + candidate.type;
+                el.innerText += ' port:' + candidate.port;
             }
             el.innerText += ')';
         }
