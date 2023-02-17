@@ -136,7 +136,6 @@ function createSpecCandidateTable(container, allStats) {
             row.appendChild(el);
 
             container.appendChild(row);
-            // console.log('PAIR', p, pair);
             for (let i = 2; i < head.childElementCount; i++) {
                 el = document.createElement('td');
                 if (i === 8) {
@@ -353,8 +352,8 @@ function processTraceEvent(table, event) {
             el.innerText += ' (' + parts[0] + ' ' + parts[1];
             const candidate = SDPUtils.parseCandidate(parts[2].substr(11).trim());
             if (candidate) {
-                el.innerText += ' type:' + candidate.type;
-                el.innerText += ' port:' + candidate.port;
+                el.innerText += ', type:' + candidate.type;
+                el.innerText += ', port:' + candidate.port;
             }
             el.innerText += ')';
         }
@@ -550,7 +549,7 @@ function processConnections(connectionIds, data) {
     }
 
 
-    // sort so we get a more useful order of graphs:
+    // sort so we get a more useful order of graphs (for legacy):
     // * ssrcs
     // * bwe
     // * everything else alphabetically
@@ -570,7 +569,7 @@ function processConnections(connectionIds, data) {
         const reports = reportobj[reportname];
         const statsType = reports[0][2];
         // ignore useless graphs
-        if (['local-candidate', 'remote-candidate', 'codec'].includes(statsType)) return;
+        if (['local-candidate', 'remote-candidate', 'codec', 'stream', 'track'].includes(statsType)) return;
         if (reportname.startsWith('Cand-') || reportname.startsWith('Channel')) return;
         if (reportname.startsWith('RTCIceCandidate_')) return;
         if (reportname.startsWith('RTCCodec_')) return;
@@ -579,22 +578,23 @@ function processConnections(connectionIds, data) {
         series.statsType = statsType;
         const plotBands = [];
         reports.sort().forEach(report => {
-            if (report[0] === 'kind' || report[0] === 'mediaType') {
-                series.kind = report[1][0][1];
+            const [name, data, statsType] = report;
+            if (name === 'kind' || name === 'mediaType') {
+                series.kind = data[0][1];
             }
-            if (report[0] === 'googTrackId') {
-                series.trackId = report[1][0][1];
+            if (name === 'trackIdentifier' || name === 'googTrackId') {
+                series.trackIdentifier = data[0][1];
             }
-            if (report[0] === 'ssrc') {
-                series.ssrc = report[1][0][1];
+            if (name === 'ssrc') {
+                series.ssrc = data[0][1];
             }
-            if (report[0] === 'label') { // for datachannels.
-                series.label = report[1][0][1];
+            if (name === 'label') { // for datachannels.
+                series.label = data[0][1];
             }
-            if (report[0] === 'active' && report[2] === 'outbound-rtp') {
+            if (name === 'active' && statsType === 'outbound-rtp') {
                 // set up a x-axis plotbands:
                 // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
-                report[1].filter((el, index, values) => {
+                data.filter((el, index, values) => {
                     return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
                 }).forEach((item, index, values) => {
                     if (item[1] === true) {
@@ -607,44 +607,68 @@ function processConnections(connectionIds, data) {
                 });
                 return;
             }
-            if (['encoderImplementation', 'decoderImplementation'].includes(report[0])) {
-                series[report[0]] = report[1][0][1];
+            if (['encoderImplementation', 'decoderImplementation'].includes(name)) {
+                // TODO: avoid "unknown"
+                series[name] = data[0][1];
             }
-            if (typeof(report[1][0][1]) !== 'number') return;
-            if (report[0] === 'bytesReceived' || report[0] === 'bytesSent') return;
-            if (report[0] === 'headerBytesReceived' || report[0] === 'headerBytesSent') return;
-            if (report[0] === 'packetsReceived' || report[0] === 'packetsSent') return;
-            if (report[0] === 'mid') {
-                series.mid = report[1][0][1];
+            if (name === 'mid') {
+                series.mid = data[0][1];
                 return;
             }
-            if (report[0]  === 'rid') {
-                series.rid = report[1][0][1];
+            if (name  === 'rid') {
+                series.rid = data[0][1];
                 return;
             }
-            if (report[0] === 'googCaptureStartNtpTimeMs') return;
 
-            if (report[0] === 'bitsReceivedPerSecond' || report[0] === 'bitsSentPerSecond') { // convert to kbps
-                report[0] = 'k' + report[0];
-                report[1] = report[1].map(el => [el[0], Math.floor(el[1] / 1000)]);
+            // On legacy stats convert bits sent/received to kbits
+            if (name === 'bitsReceivedPerSecond' || name === 'bitsSentPerSecond') {
+                name = 'k' + name;
+                data = data.map(el => [el[0], Math.floor(el[1] / 1000)]);
+            }
+
+            if (typeof(data[0][1]) !== 'number') return;
+            const ignoredSeries = [
+                'protocol', 'dataChannelIdentifier',
+                'streamIdentifier', 'trackIdentifier',
+                'priority', 'port',
+            ];
+            if (ignoredSeries.includes(name)) {
+                return;
             }
 
             const hiddenSeries = [
+                'bytesReceived', 'bytesSent',
+                'headerBytesReceived', 'headerBytesSent',
+                'packetsReceived', 'packetsSent',
                 'qpSum', 'estimatedPlayoutTimestamp',
                 'framesEncoded', 'framesDecoded',
-                'lastPacketReceivedTimestamp',
+                'lastPacketReceivedTimestamp', 'lastPacketSentTimestamp',
+                'remoteTimestamp',
                 'audioInputLevel', 'audioOutputLevel',
-                'googEchoCancellationEchoDelayStdDev',
                 'totalSamplesDuration',
+                'totalSamplesReceived', 'jitterBufferEmittedCount',
+                // legacy
                 'googDecodingCTN', 'googDecodingCNG', 'googDecodingNormal',
                 'googDecodingPLCCNG', 'googDecodingCTSG', 'googDecodingMuted',
-                'priority', 'port',
+                'googEchoCancellationEchoDelayStdDev',
+                'googCaptureStartNtpTimeMs',
+            ];
+            const secondYAxis = [
+                // candidate-pair
+                'consentRequestsSent', 'requestsSent', 'requestsReceived', 'responsesSent', 'responsesReceived',
+                // data-channel
+                '[messagesReceived/s]', '[messagesSent/s]',
+                // inbound-rtp
+                '[framesReceived/s]', '[framesDecoded/s]', '[keyFramesDecoded/s]',
+                // outbound-rtp'
+                '[framesSent/s]', '[framesEncoded/s]', '[keyFramesEncoded/s]',
             ];
 
             series.push({
-                name: report[0],
-                visible: hiddenSeries.indexOf(report[0]) === -1,
-                data: report[1]
+                name,
+                data,
+                visible: !hiddenSeries.includes(name),
+                yAxis: secondYAxis.includes(name) ? 1 : 0,
             });
         });
 
@@ -659,11 +683,14 @@ function processConnections(connectionIds, data) {
                     }
                 });
         }
+
+        // TODO: it would be nice to sort the graphs such that same mids go together.
         if (series.length > 0) {
             const container = document.createElement('details');
             if (series.statsType) {
                 container.attributes['data-statsType'] = series.statsType;
             }
+            // open certain legacy reports by default.
             container.open = reportname.startsWith('ssrc_') ||
                 reportname === 'bweforvideo' ||
                 (reportname.startsWith('Conn-') && reportname.indexOf('-1-0') !== -1);
@@ -671,14 +698,14 @@ function processConnections(connectionIds, data) {
 
             const title = [
                 series.statsType ? 'type=' + series.statsType : '',
-                series.kind ? 'media kind=' + series.kind : '',
+                series.kind ? 'kind=' + series.kind : '',
                 series.ssrc !== undefined ? 'ssrc=' + series.ssrc.toString(16) : '',
                 series.mid !== undefined ? 'mid=' + series.mid : '',
                 series.rid !== undefined ? 'rid=' + series.rid : '',
-                series.trackId ? 'trackId=' + series.trackId : '',
                 series.label ? 'label=' + series.label : '',
                 series.encoderImplementation ? 'encoderImplementation="' + series.encoderImplementation + '"': '',
                 series.decoderImplementation ? 'decoderImplementation="' + series.decoderImplementation + '"': '',
+                series.trackIdentifier ? 'track=' + series.trackIdentifier : '',
                 'id=' + reportname,
             ].filter(s => s !== '').join(' ');
             const titleElement = document.createElement('summary');
@@ -697,14 +724,18 @@ function processConnections(connectionIds, data) {
                     type: 'datetime',
                     plotBands,
                 },
-                yAxis: {
-                    min: series.kind ? 0 : undefined
-                },
+                yAxis: [{
+                        min: series.kind ? 0 : undefined
+                    },
+                    {
+                        min: series.kind ? 0 : undefined
+                    },
+                ],
                 chart: {
                     zoomType: 'x',
                     renderTo : d.id,
                 },
-                series: series
+                series,
             });
             graphs[connid][reportname] = graph;
 
@@ -731,18 +762,18 @@ function processConnections(connectionIds, data) {
 }
 
 function filterStatsGraphs(event, container) {
-  const filter =  event.target.value;
-  const filters = filter.split(',');
+    const filter =  event.target.value;
+    const filters = filter.split(',');
     container.childNodes.forEach(node => {
-    if (node.nodeName !== 'DETAILS') {
-      return;
-    }
-    const statsType = node.attributes['data-statsType'];
-    if (!filter || filters.includes(statsType) ||
-        filters.find(f => statsType.includes(f))) {
-      node.style.display = 'block';
-    } else {
-      node.style.display = 'none';
-    }
-  });
+        if (node.nodeName !== 'DETAILS') {
+            return;
+        }
+        const statsType = node.attributes['data-statsType'];
+        if (!filter || filters.includes(statsType) ||
+            filters.find(f => statsType.includes(f))) {
+            node.style.display = 'block';
+        } else {
+            node.style.display = 'none';
+        }
+    });
 }
