@@ -2,7 +2,6 @@
     <head>
         <meta charset="utf-8">
         <title>Import webrtc-internals dumps</title>
-        <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
         <!-- highcharts is used under the terms of
             http://shop.highsoft.com/faq/non-commercial
         -->
@@ -20,6 +19,9 @@ details[open] pre {
 }
 table details[open] summary {
     color: blue;
+}
+#tables {
+    display: none;
 }
 #tables>details:nth-of-type(even) {
     background-color: #f0f0f0;
@@ -47,10 +49,14 @@ button.copyBtn {
     </head>
     <body>
         <p>This is an import tool for dumps from chrome://webrtc-internals. See <a href="http://testrtc.com/webrtc-internals-parameters/">this blog post</a> for a lengthy description of what it does and how to interpret some of the data.
-        <form><input type="file" onchange="doImport(event)"></form>
-        <input type="checkbox" id="useReferenceTime">Use RTCPeerConnection creation time as start time for all graphs.
-        <div><b>User Agent:</b> <span id="userAgent"></span></div>
+        <form>
+            <label>Select a WebRTC-internals JSON dump:</label>
+            <input type="file" onchange="doImport(event)">
+            <br>
+            <input type="checkbox" id="useReferenceTime"><label for="useReferenceTime">Use RTCPeerConnection creation time as start time for all graphs.</label>
+        </form>
         <div id="tables">
+            <b>User Agent:</b> <span id="userAgent"></span>
         </div>
     </body>
 </html>

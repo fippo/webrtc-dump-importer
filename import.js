@@ -439,6 +439,7 @@ const graphs = {};
 const containers = {};
 function importUpdatesAndStats(data) {
     document.getElementById('userAgent').innerText = data.UserAgent;
+    document.getElementById('tables').style.display = 'block';
 
     // FIXME: also display GUM calls (can they be correlated to addStream?)
     processGUM(data.getUserMedia);
