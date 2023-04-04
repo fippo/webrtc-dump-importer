@@ -17,4 +17,3 @@ Just use that hash in the URL to specify a connection id, start time, stop time 
 ## License
 MIT
 
-Note that the (awesome) Highcharts library used for plots may need a license. See http://shop.highsoft.com/faq/non-commercial

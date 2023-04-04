@@ -435,7 +435,6 @@ function processTraceEvent(table, event) {
     table.appendChild(row);
 }
 
-const graphs = {};
 const containers = {};
 function importUpdatesAndStats(data) {
     document.getElementById('userAgent').innerText = data.UserAgent;
@@ -523,7 +522,6 @@ function processConnections(connectionIds, data) {
     const referenceTime = connection.updateLog.length
         ? new Date(connection.updateLog[0].time).getTime()
         : undefined;
-    graphs[connid] = {};
     const reportobj = {};
     let values;
     for (reportname in connection.stats) {
@@ -717,47 +715,15 @@ function processConnections(connectionIds, data) {
             d.id = 'chart_' + Date.now();
             d.classList.add('graph');
             container.appendChild(d);
-            const graph = new Highcharts.Chart({
-                title: {
-                    text: null
-                },
-                xAxis: {
-                    type: 'datetime',
-                    plotBands,
-                },
-                yAxis: [{
-                        min: series.kind ? 0 : undefined
-                    },
-                    {
-                        min: series.kind ? 0 : undefined
-                    },
-                ],
-                chart: {
-                    zoomType: 'x',
-                    renderTo : d.id,
-                },
-                series,
-            });
-            graphs[connid][reportname] = graph;
+            const traces = Object.keys(series).map(k => series[k]).filter(s => s.data).map(s => ({
+                mode: 'lines+markers',
+                name: s.name,
+                x: s.data.map(d => new Date(d[0])),
+                y: s.data.map(d => d[1])
+            }));
 
             // expand the graph when opening
-            container.ontoggle = () => container.open && graph.reflow();
-
-            // draw checkbox to turn off everything
-            ((reportname, container, graph) => {
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                container.appendChild(checkbox);
-                const label = document.createElement('label');
-                label.innerText = 'Turn on/off all data series'
-                container.appendChild(label);
-                checkbox.onchange = function() {
-                    graph.series.forEach(series => {
-                        series.setVisible(!checkbox.checked, false);
-                    });
-                    graph.redraw();
-                };
-            })(reportname, container, graph);
+            container.ontoggle = () => container.open && Plotly.react(d, traces);
         }
     });
 }
