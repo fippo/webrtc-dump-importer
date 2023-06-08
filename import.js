@@ -71,6 +71,8 @@ function createSpecCandidateTable(container, allStats) {
         'protocol',
         'priority / relayProtocol',
         'interface',
+        'requestsSent / responsesReceived',
+        'requestsReceived / responsesSent',
     ].forEach((text) => {
         const el = document.createElement('td');
         el.innerText = text;
@@ -140,6 +142,12 @@ function createSpecCandidateTable(container, allStats) {
                 el = document.createElement('td');
                 if (i === 8) {
                     el.innerText = pair.priority;
+                } else if (i === 10) {
+                    el.innerText = (pair.requestsSent + pair.consentRequestsSent) + ' / ' + pair.responsesReceived;
+                    if (pair.bytesSent) el.innerText += '\nPayload bytesSent=' + pair.bytesSent;
+                } else if (i === 11) {
+                    el.innerText = pair.requestsReceived + ' / ' + pair.responsesSent;
+                    if (pair.bytesReceived) el.innerText += '\nPayload bytesReceived=' + pair.bytesReceived;
                 }
                 row.appendChild(el);
             }
@@ -185,6 +193,9 @@ function createSpecCandidateTable(container, allStats) {
                 el = document.createElement('td');
                 el.innerText = candidate.networkType || 'unknown';
                 row.appendChild(el);
+
+                row.appendChild(document.createElement('td'));
+                row.appendChild(document.createElement('td'));
 
                 container.appendChild(row);
             }
