@@ -556,10 +556,16 @@ function processConnections(connectionIds, data) {
         values = JSON.parse(connection.stats[reportname].values);
         startTime = new Date(connection.stats[reportname].startTime).getTime();
         endTime = new Date(connection.stats[reportname].endTime).getTime();
-        values = values.map((currentValue, index) => [startTime + 1000 * index, currentValue]);
+        // Individual timestamps were added in crbug.com/1462567 in M117.
+        if (connection.stats[stat + '-timestamp']) {
+            const timestamps = JSON.parse(connection.stats[stat + '-timestamp'].values);
+            values = values.map((currentValue, index) => [timestamps[index], currentValue]);
+        } else {
+            // Fallback to the assumption that stats were gathered every second.
+            values = values.map((currentValue, index) => [startTime + 1000 * index, currentValue]);
+        }
         reportobj[stat].push([comp, values, connection.stats[reportname].statsType]);
     }
-
 
     // sort so we get a more useful order of graphs (for legacy):
     // * ssrcs
