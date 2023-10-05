@@ -646,9 +646,11 @@ function processConnections(connectionIds, data) {
 
             if (typeof(data[0][1]) !== 'number') return;
             const ignoredSeries = [
+                'timestamp',
                 'protocol', 'dataChannelIdentifier',
                 'streamIdentifier', 'trackIdentifier',
                 'priority', 'port',
+                'ssrc', 'rtxSsrc', 'fecSsrc',
             ];
             if (ignoredSeries.includes(name)) {
                 return;
@@ -658,13 +660,13 @@ function processConnections(connectionIds, data) {
                 'bytesReceived', 'bytesSent',
                 'headerBytesReceived', 'headerBytesSent',
                 'packetsReceived', 'packetsSent',
-                'qpSum', 'estimatedPlayoutTimestamp',
-                'framesEncoded', 'framesDecoded',
+                'qpSum',
+                'framesEncoded', 'framesDecoded', 'totalEncodeTime',
                 'lastPacketReceivedTimestamp', 'lastPacketSentTimestamp',
-                'remoteTimestamp',
+                'remoteTimestamp', 'estimatedPlayoutTimestamp',
                 'audioInputLevel', 'audioOutputLevel',
-                'totalSamplesDuration',
-                'totalSamplesReceived', 'jitterBufferEmittedCount',
+                'totalSamplesDuration', 'totalSamplesReceived',
+                'jitterBufferEmittedCount',
                 // legacy
                 'googDecodingCTN', 'googDecodingCNG', 'googDecodingNormal',
                 'googDecodingPLCCNG', 'googDecodingCTSG', 'googDecodingMuted',
