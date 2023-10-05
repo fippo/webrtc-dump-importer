@@ -623,7 +623,7 @@ function processConnections(connectionIds, data) {
                         to: (values[index + 1] || [])[0],
                         label: {
                             align: 'center',
-                            text: series.ssrc + ' disabled',
+                            text: 'sender disabled',
                         },
                     });
                 });
