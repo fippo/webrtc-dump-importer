@@ -650,17 +650,15 @@ function processConnections(connectionIds, data) {
                 return;
             }
 
-            if (['encoderImplementation', 'decoderImplementation'].includes(name)) {
-                // TODO: avoid "unknown"
+            const statsForLabels = [
+                'mid', 'rid',
+                'ssrc', 'rtxSsrc', 'fecSsrc',
+                'encoderImplementation', 'decoderImplementation', 'scalabilityMode',
+                'scalabilityMode', '[codec]',
+                'label', // for datachannels
+            ];
+            if (statsForLabels.includes(name)) {
                 series[name] = data[0][1];
-            }
-            if (name === 'mid') {
-                series.mid = data[0][1];
-                return;
-            }
-            if (name  === 'rid') {
-                series.rid = data[0][1];
-                return;
             }
 
             // On legacy stats convert bits sent/received to kbits
@@ -676,6 +674,7 @@ function processConnections(connectionIds, data) {
                 'streamIdentifier', 'trackIdentifier',
                 'priority', 'port',
                 'ssrc', 'rtxSsrc', 'fecSsrc',
+                'mid', 'rid',
             ];
             if (ignoredSeries.includes(name)) {
                 return;
@@ -740,19 +739,21 @@ function processConnections(connectionIds, data) {
                 reportname === 'bweforvideo' ||
                 (reportname.startsWith('Conn-') && reportname.indexOf('-1-0') !== -1);
             containers[connid].graphs.appendChild(container);
-
+            // TODO: keep in sync with
+            // https://source.chromium.org/chromium/chromium/src/+/main:content/browser/webrtc/resources/stats_helper.js
             const title = [
-                series.statsType ? 'type=' + series.statsType : '',
-                series.kind ? 'kind=' + series.kind : '',
-                series.ssrc !== undefined ? 'ssrc=' + series.ssrc.toString(16) : '',
-                series.mid !== undefined ? 'mid=' + series.mid : '',
-                series.rid !== undefined ? 'rid=' + series.rid : '',
-                series.label ? 'label=' + series.label : '',
-                series.encoderImplementation ? 'encoderImplementation="' + series.encoderImplementation + '"': '',
-                series.decoderImplementation ? 'decoderImplementation="' + series.decoderImplementation + '"': '',
-                series.trackIdentifier ? 'track=' + series.trackIdentifier : '',
-                'id=' + reportname,
-            ].filter(s => s !== '').join(' ');
+                'statsType', 'kind',
+                'ssrc', 'rtxSsrc', 'fecSsrc',
+                'mid', 'rid',
+                'label',
+                '[codec]',
+                'encoderImplementation', 'decoderImplementation',
+                'trackIdentifier',
+                'id',
+            ].filter(key => series[key] !== undefined)
+            .map(key => {
+                return ({statsType: 'type', trackIdentifier: 'track'}[key] || key) + '=' + JSON.stringify(series[key]);
+            }).join(', ');
             const titleElement = document.createElement('summary');
             titleElement.innerText = title;
             container.appendChild(titleElement);
