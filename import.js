@@ -661,7 +661,7 @@ function processConnections(connectionIds, data) {
                         from: item[0],
                         to: (values[index + 1] || [])[0],
                         label: {
-                            align: 'center',
+                            align: 'left',
                             text: name + ': ' + item[1],
                         },
                         color: index % 2 === 0 ? 'white' : 'rgba(253, 253, 222, 0.3)',
@@ -672,7 +672,6 @@ function processConnections(connectionIds, data) {
             if (name === 'scalabilityMode' && statsType === 'outbound-rtp') {
                 // set up a x-axis plotbands:
                 // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
-                // This one is fully transparent (white with 100% alpha) since it overlaps with encoderImplementation.
                 data.filter((el, index, values) => {
                     return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
                 }).forEach((item, index, values) => {
@@ -680,11 +679,15 @@ function processConnections(connectionIds, data) {
                         from: item[0],
                         to: (values[index + 1] || [])[0],
                         label: {
-                            align: 'center',
+                            align: 'right',
                             text: name + ': ' + item[1],
                             y: 30,
                         },
+                        // This one is fully transparent (white with 100% alpha) since it overlaps with encoderImplementation.
                         color: (255, 255, 255, 1),
+                        // But has a 1px border so it is possible to see changes unrelated to codec switches.
+                        borderWidth: 1,
+                        borderColor: 'rgba(189, 189, 189, 0.3)',
                     });
                 });
                 return;
