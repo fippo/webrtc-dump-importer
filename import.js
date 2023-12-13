@@ -651,6 +651,24 @@ function processConnections(connectionIds, data) {
                 });
                 return;
             }
+            if (['encoderImplementation', 'decoderImplementation'].includes(name) && ['inbound-rtp', 'outbound-rtp'].includes(statsType)) {
+                // set up a x-axis plotbands:
+                // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
+                data.filter((el, index, values) => {
+                    return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
+                }).forEach((item, index, values) => {
+                    plotBands.push({
+                        from: item[0],
+                        to: (values[index + 1] || [])[0],
+                        label: {
+                            align: 'center',
+                            text: name + ': ' + item[1],
+                        },
+                        color: index % 2 === 0 ? 'white' : '#FDFDDE',
+                    });
+                });
+                return;
+            }
 
             const statsForLabels = [
                 'mid', 'rid',
@@ -705,9 +723,9 @@ function processConnections(connectionIds, data) {
                 // data-channel
                 '[messagesReceived/s]', '[messagesSent/s]',
                 // inbound-rtp
-                '[framesReceived/s]', '[framesDecoded/s]', '[keyFramesDecoded/s]',
+                '[framesReceived/s]', '[framesDecoded/s]', '[keyFramesDecoded/s]', 'frameWidth', 'frameHeight',
                 // outbound-rtp'
-                '[framesSent/s]', '[framesEncoded/s]', '[keyFramesEncoded/s]',
+                '[framesSent/s]', '[framesEncoded/s]', '[keyFramesEncoded/s]', 'frameWidth', 'frameHeight',
             ];
 
             series.push({
