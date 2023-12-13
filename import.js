@@ -664,7 +664,7 @@ function processConnections(connectionIds, data) {
                             align: 'center',
                             text: name + ': ' + item[1],
                         },
-                        color: index % 2 === 0 ? 'white' : '#FDFDDE',
+                        color: index % 2 === 0 ? 'white' : 'rgba(253, 253, 222, 0.3)',
                     });
                 });
                 return;
