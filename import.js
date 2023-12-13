@@ -661,10 +661,28 @@ function processConnections(connectionIds, data) {
                         from: item[0],
                         to: (values[index + 1] || [])[0],
                         label: {
-                            align: 'center',
+                            align: 'left',
                             text: name + ': ' + item[1],
                         },
                         color: index % 2 === 0 ? 'white' : '#FDFDDE',
+                    });
+                });
+                return;
+            }
+            if (name === 'scalabilityMode' && statsType === 'outbound-rtp') {
+                // set up a x-axis plotbands:
+                // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
+                data.filter((el, index, values) => {
+                    return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
+                }).forEach((item, index, values) => {
+                    plotBands.push({
+                        from: item[0],
+                        to: (values[index + 1] || [])[0],
+                        label: {
+                            align: 'right',
+                            text: name + ': ' + item[1],
+                        },
+                        color: index % 2 === 0 ? 'white' : '#DEE4FD',
                     });
                 });
                 return;
