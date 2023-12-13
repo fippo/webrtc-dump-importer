@@ -700,6 +700,7 @@ function processConnections(connectionIds, data) {
             if (statsForLabels.includes(name)) {
                 series[name] = data[0][1];
             }
+            series.id = reportname;
 
             // On legacy stats convert bits sent/received to kbits
             if (name === 'bitsReceivedPerSecond' || name === 'bitsSentPerSecond') {
