@@ -21,44 +21,7 @@ function doImport(evt) {
   }
 }
 
-function createLegacyCandidateTable(container, stun) {
-    // for ice candidates
-    const head = document.createElement('tr');
-    [
-        'Local address',
-        'Local type',
-        'Local id',
-        'Remote address',
-        'Remote type',
-        'Remote id',
-        'Requests sent', 'Responses received',
-        'Requests received', 'Responses sent',
-        'Active Connection',
-    ].forEach((text) => {
-        const el = document.createElement('td');
-        el.innerText = text;
-        head.appendChild(el);
-    });
-    container.appendChild(head);
-
-    for (t in stun) {
-        const row = document.createElement('tr');
-        [
-            'googLocalAddress', 'googLocalCandidateType', 'localCandidateId',
-            'googRemoteAddress', 'googRemoteCandidateType', 'remoteCandidateId',
-            'requestsSent', 'responsesReceived',
-            'requestsReceived', 'responsesSent',
-            'googActiveConnection', /* consentRequestsSent, */
-        ].forEach((id) => {
-            const el = document.createElement('td');
-            el.innerText = stun[t][id];
-            row.appendChild(el);
-        });
-        container.appendChild(row);
-    }
-}
-
-function createSpecCandidateTable(container, allStats) {
+function createCandidateTable(container, allStats) {
     const head = document.createElement('tr');
     [
         'Transport id',
@@ -429,22 +392,7 @@ function processTraceEvent(table, event) {
             row.style.backgroundColor = 'red';
             break;
         }
-    } else if (event.type === 'iceConnectionStateChange') {
-        // Legacy variant, probably broken by now since the values changed.
-        switch(event.value) {
-        case 'ICEConnectionStateConnected':
-        case 'ICEConnectionStateCompleted':
-        case 'kICEConnectionStateConnected':
-        case 'kICEConnectionStateCompleted':
-            row.style.backgroundColor = 'green';
-            break;
-        case 'ICEConnectionStateFailed':
-        case 'kICEConnectionStateFailed':
-            row.style.backgroundColor = 'red';
-            break;
-        }
     }
-
     table.appendChild(row);
 }
 
@@ -486,41 +434,17 @@ function importUpdatesAndStats(data) {
                 containers[connid].signalingState.textContent += ' => ' + event.value;
             }
         });
-        const stun = {};
+        let legacy = false;
         for (reportname in connection.stats) {
             if (reportname.startsWith('Conn-')) {
-                let t = reportname.split('-');
-                const comp = t.pop();
-                t = t.join('-');
-                if (!stun[t]) stun[t] = {};
-                const stats = JSON.parse(connection.stats[reportname].values);
-                switch(comp) {
-                case 'requestsSent':
-                case 'consentRequestsSent':
-                case 'responsesSent':
-                case 'requestsReceived':
-                case 'responsesReceived':
-                case 'localCandidateId':
-                case 'remoteCandidateId':
-                case 'googLocalAddress':
-                case 'googRemoteAddress':
-                case 'googLocalCandidateType':
-                case 'googRemoteCandidateType':
-                case 'googActiveConnection':
-                    //console.log(t, comp, connection.stats[reportname]);
-                    stun[t][comp] = stats[stats.length - 1];
-                    break;
-                default:
-                    //console.log(reportname, comp, stats);
-                }
+                legacy = true;
+                break;
             }
         }
-
-        if (Object.keys(stun).length === 0) {
-            // spec-stats. A bit more complicated... we need the transport and then the candidate pair and the local/remote candidates.
-            createSpecCandidateTable(containers[connid].candidates, connection.stats);
+        if (!legacy) {
+            createCandidateTable(containers[connid].candidates, connection.stats);
         } else {
-            createLegacyCandidateTable(containers[connid].candidates, stun);
+            document.getElementById('legacy').style.display = 'block';
         }
     }
     // then, update the stats displays
@@ -539,6 +463,12 @@ function processConnections(connectionIds, data) {
     graphs[connid] = {};
     const reportobj = {};
     let values;
+
+    for (reportname in connection.stats) {
+        if (reportname.startsWith('Conn-')) {
+            return; // legacy stats, no longer supported. Warning is shown above.
+        }
+    }
     for (reportname in connection.stats) {
         // special casing of computed stats, in particular [a-b]
         if (reportname.indexOf('[') !== -1) {
@@ -569,30 +499,11 @@ function processConnections(connectionIds, data) {
         reportobj[stat].push([comp, values, connection.stats[reportname].statsType]);
     }
 
-    // sort so we get a more useful order of graphs (for legacy):
-    // * ssrcs
-    // * bwe
-    // * everything else alphabetically
-    let names = Object.keys(reportobj);
-    const ssrcs = names.filter(name => name.startsWith('ssrc_')).sort((a, b) => { // sort by send/recv and ssrc
-        const aParts = a.split('_');
-        const bParts = b.split('_');
-        if (aParts[2] === bParts[2]) {
-            return parseInt(aParts[1], 10) - parseInt(bParts[1], 10);
-        } else if (aParts[2] === 'send') return -1;
-        return 1;
-    });
-    const bwe = names.filter(name => name === 'bweforvideo');
-    names = names.filter(name => !name.startsWith('ssrc_') && name !== 'bweforvideo');
-    names = ssrcs.concat(bwe, names);
-    names.forEach(reportname => {
+    Object.keys(reportobj).forEach(reportname => {
         const reports = reportobj[reportname];
         const statsType = reports[0][2];
         // ignore useless graphs
         if (['local-candidate', 'remote-candidate', 'codec', 'stream', 'track'].includes(statsType)) return;
-        if (reportname.startsWith('Cand-') || reportname.startsWith('Channel')) return;
-        if (reportname.startsWith('RTCIceCandidate_')) return;
-        if (reportname.startsWith('RTCCodec_')) return;
 
         const series = [];
         series.statsType = statsType;
@@ -602,7 +513,7 @@ function processConnections(connectionIds, data) {
             if (name === 'kind' || name === 'mediaType') {
                 series.kind = data[0][1];
             }
-            if (name === 'trackIdentifier' || name === 'googTrackId') {
+            if (name === 'trackIdentifier') {
                 series.trackIdentifier = data[0][1];
             }
             if (name === 'ssrc') {
@@ -705,12 +616,6 @@ function processConnections(connectionIds, data) {
             }
             series.id = reportname;
 
-            // On legacy stats convert bits sent/received to kbits
-            if (name === 'bitsReceivedPerSecond' || name === 'bitsSentPerSecond') {
-                name = 'k' + name;
-                data = data.map(el => [el[0], Math.floor(el[1] / 1000)]);
-            }
-
             if (typeof(data[0][1]) !== 'number') return;
             const ignoredSeries = [
                 'timestamp',
@@ -735,11 +640,6 @@ function processConnections(connectionIds, data) {
                 'audioInputLevel', 'audioOutputLevel',
                 'totalSamplesDuration', 'totalSamplesReceived',
                 'jitterBufferEmittedCount',
-                // legacy
-                'googDecodingCTN', 'googDecodingCNG', 'googDecodingNormal',
-                'googDecodingPLCCNG', 'googDecodingCTSG', 'googDecodingMuted',
-                'googEchoCancellationEchoDelayStdDev',
-                'googCaptureStartNtpTimeMs',
             ];
             const secondYAxis = [
                 // candidate-pair
@@ -778,10 +678,6 @@ function processConnections(connectionIds, data) {
             if (series.statsType) {
                 container.attributes['data-statsType'] = series.statsType;
             }
-            // open certain legacy reports by default.
-            container.open = reportname.startsWith('ssrc_') ||
-                reportname === 'bweforvideo' ||
-                (reportname.startsWith('Conn-') && reportname.indexOf('-1-0') !== -1);
             containers[connid].graphs.appendChild(container);
             // TODO: keep in sync with
             // https://source.chromium.org/chromium/chromium/src/+/main:content/browser/webrtc/resources/stats_helper.js

@@ -55,6 +55,11 @@ button.copyBtn {
             <br>
             <input type="checkbox" id="useReferenceTime"><label for="useReferenceTime">Use RTCPeerConnection creation time as start time for all graphs.</label>
         </form>
+        <div id="legacy" style="display:none">
+            <b>Legacy getStats detected, these have been remove from Chrome 122 in early 2024.</b>
+            If you need to import such a dump please use an old version of the git repository prior
+            to this <a href="https://github.com/fippo/webrtc-dump-importer/commit/136f273810d90e915f05d10e0ff3fb98ee9f041b">commit</a>.
+        </div>
         <div id="tables">
             <b>User Agent:</b> <span id="userAgent"></span>
         </div>
