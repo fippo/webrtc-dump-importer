@@ -360,9 +360,8 @@ function processTraceEvent(event) {
         el = document.createElement('pre');
         sections.forEach(section => {
             const lines = SDPUtils.splitLines(section);
-            const mid = lines
-                .filter(line => line.startsWith('a=mid:'))
-                .map(line => line.substr(6))[0];
+            const mid = SDPUtils.getMid(section);
+	    const direction = SDPUtils.getDirection(section, sections[0]);
 
             const details = document.createElement('details');
             // Fold by default for large SDP.
@@ -372,7 +371,9 @@ function processTraceEvent(event) {
             const summary = document.createElement('summary');
             summary.innerText = lines[0] +
                 ' (' + (lines.length - 1) + ' more lines)' +
-                (mid ? ' mid=' + mid : '');
+                (mid ? ' mid=' + mid : '') +
+		(direction ? ' direction=' + direction : '');
+
             details.appendChild(summary);
             el.appendChild(details);
         });
