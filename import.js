@@ -310,7 +310,7 @@ function processGetUserMedia(data) {
     });
 }
 
-function processTraceEvent(event) {
+function processTraceEvent(event, state) {
     const row = document.createElement('tr');
     let el = document.createElement('td');
     el.setAttribute('nowrap', '');
@@ -347,8 +347,25 @@ function processTraceEvent(event) {
     if (event.value.indexOf(', sdp: ') != -1) {
         const [type, sdp] = event.value.substr(6).split(', sdp: ');
         const sections = SDPUtils.splitSections(sdp);
+        let last_sections;
+        let remote_sections;
+        if (event.type === 'setLocalDescription') {
+            const [last_type, last_sdp] = (type === 'offer' ? state.lastCreatedOffer : state.lastCreatedAnswer)
+                .substr(6).split(', sdp: ');
+            if (sdp != last_sdp) {
+                last_sections = SDPUtils.splitSections(last_sdp);
+            }
+            if (state.remoteDescription) {
+                const [remote_type, remote_sdp] = state.remoteDescription.substr(6).split(', sdp: ');
+                remote_sections = SDPUtils.splitSections(remote_sdp);
+            }
+        }
 
         el.innerText += ' (type: "' + type + '", ' + sections.length + ' sections)';
+        if (last_sections) {
+            el.innerText += ' munged';
+            el.style.backgroundColor = '#FBCEB1';
+        }
         const copyBtn = document.createElement('button');
         copyBtn.innerText = '\uD83D\uDCCB'; // clipboard
         copyBtn.className = 'copyBtn';
@@ -358,10 +375,9 @@ function processTraceEvent(event) {
         el.appendChild(copyBtn);
 
         el = document.createElement('pre');
-        sections.forEach(section => {
+        sections.forEach((section, index) => {
             const lines = SDPUtils.splitLines(section);
             const mid = SDPUtils.getMid(section);
-	    const direction = SDPUtils.getDirection(section, sections[0]);
 
             const details = document.createElement('details');
             // Fold by default for large SDP.
@@ -371,9 +387,25 @@ function processTraceEvent(event) {
             const summary = document.createElement('summary');
             summary.innerText = lines[0] +
                 ' (' + (lines.length - 1) + ' more lines)' +
-                (mid ? ' mid=' + mid : '') +
-		(direction ? ' direction=' + direction : '');
-
+                (mid ? ' mid=' + mid : '');
+	    if (lines[0].startsWith('m=')) {
+		const direction = SDPUtils.getDirection(section, sections[0]);
+		summary.innerText += ' direction=' + direction;
+                const is_rejected = SDPUtils.parseMLine(lines[0]).port === 0;
+                if (is_rejected) {
+		    summary.innerText += ' rejected';
+                    const was_rejected = remote_sections && remote_sections[index] &&
+                        SDPUtils.parseMLine(remote_sections[index]).port === 0;
+		    if (['createOffer', 'createAnswer', 'setLocalDescription'].includes(event.type)) {
+			summary.style.backgroundColor = '#ddd';
+		    }
+                    details.open = false;
+		}
+                if (last_sections && last_sections[index] !== sections[index]) {
+                    summary.innerText += ' munged';
+                    summary.style.backgroundColor = '#FBCEB1';
+                }
+	    }
             details.appendChild(summary);
             el.appendChild(details);
         });
@@ -428,9 +460,21 @@ function importUpdatesAndStats(data) {
         containers[connid].configuration.innerText += 'Legacy (chrome) constraints: ' + JSON.stringify(connection.constraints, null, ' ');
 
         document.getElementById('tables').appendChild(container);
-
+        const state = {};
         connection.updateLog.forEach(event => {
-            containers[connid].updateLog.appendChild(processTraceEvent(event));
+            containers[connid].updateLog.appendChild(processTraceEvent(event, state));
+            if (event.type === 'createOfferOnSuccess') {
+                state.lastCreatedOffer = event.value;
+            } else if (event.type === 'createAnswerOnSuccess') {
+                state.lastCreatedAnswer = event.value;
+            } else if (event.type === 'setLocalDescription') {
+                state.lastCreatedOffer = undefined;
+                state.lastCreatedAnswer = undefined;
+            } else if (event.type === 'setRemoteDescription') {
+                state.lastRemoteDescription = event.value;
+            } else if (event.type == 'signalingstatechange' && event.value === 'stable') {
+                state.lastRemoteDescription = undefined;
+            }
         });
         connection.updateLog.forEach(event => {
             // update state displays
