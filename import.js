@@ -378,10 +378,11 @@ function processTraceEvent(event, state) {
         sections.forEach((section, index) => {
             const lines = SDPUtils.splitLines(section);
             const mid = SDPUtils.getMid(section);
+            const direction = SDPUtils.getDirection(section, sections[0]);
 
             const details = document.createElement('details');
             // Fold by default for large SDP.
-            details.open = sections.length < 10;
+            details.open = sections.length < 10 && direction !== 'inactive';
             details.innerText = section;
 
             const summary = document.createElement('summary');
@@ -389,7 +390,6 @@ function processTraceEvent(event, state) {
                 ' (' + (lines.length - 1) + ' more lines)' +
                 (mid ? ' mid=' + mid : '');
 	    if (lines[0].startsWith('m=')) {
-		const direction = SDPUtils.getDirection(section, sections[0]);
 		summary.innerText += ' direction=' + direction;
                 const is_rejected = SDPUtils.parseMLine(lines[0]).port === 0;
                 if (is_rejected) {
@@ -404,6 +404,7 @@ function processTraceEvent(event, state) {
                 if (last_sections && last_sections[index] !== sections[index]) {
                     summary.innerText += ' munged';
                     summary.style.backgroundColor = '#FBCEB1';
+                    details.open = true;
                 }
 	    }
             details.appendChild(summary);
