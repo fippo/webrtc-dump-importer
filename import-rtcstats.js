@@ -1,103 +1,103 @@
 function decompress(baseStats, newStats) {
-  const timestamp = newStats.timestamp
-  delete newStats.timestamp;
-  Object.keys(newStats).forEach(id => {
-    if (!baseStats[id]) {
-      if (newStats[id].timestamp === 0) {
-        newStats[id].timestamp = timestamp;
-      }
-      baseStats[id] = newStats[id];
-    } else {
-      const report = newStats[id];
-      if (report.timestamp === 0) {
-          report.timestamp = timestamp;
-      } else if (!report.timestamp) {
-          report.timestamp = new Date(baseStats[id].timestamp).getTime();
-      }
-      Object.keys(report).forEach(name => {
-        baseStats[id][name] = report[name];
-      });
-    }
-  });
-  return baseStats;
+    const timestamp = newStats.timestamp
+    delete newStats.timestamp;
+    Object.keys(newStats).forEach(id => {
+        if (!baseStats[id]) {
+            if (newStats[id].timestamp === 0) {
+                newStats[id].timestamp = timestamp;
+            }
+            baseStats[id] = newStats[id];
+        } else {
+            const report = newStats[id];
+            if (report.timestamp === 0) {
+                report.timestamp = timestamp;
+            } else if (!report.timestamp) {
+                report.timestamp = new Date(baseStats[id].timestamp).getTime();
+            }
+            Object.keys(report).forEach(name => {
+                baseStats[id][name] = report[name];
+            });
+        }
+    });
+    return baseStats;
 }
 
 let fileFormat;
 function doImport(evt) {
-  evt.target.disabled = 'disabled';
-  const files = evt.target.files;
-  const file = files[0];
-  const reader = new FileReader();
-  reader.onload = (function(file) {
-    return function(e) {
-      let result = e.target.result;
-      if (typeof result === 'object') {
-        result = pako.inflate(result, {to: 'string'});
-      }
-      if (result.indexOf('\n') === -1) {
-        // old format v0
-        thelog = JSON.parse(result);
-      } else {
-        // new format, multiple lines
-        const baseStats = {};
-        const lines = result.split('\n');
-        const client = JSON.parse(lines.shift());
-        fileFormat = client.fileFormat;
-        client.peerConnections = {};
-        client.getUserMedia = [];
-        lines.forEach(line => {
-            if (line.length) {
-                const data = JSON.parse(line);
-                const time = new Date(data.time || data[data.length - 1]);
-                delete data.time;
-                switch(data[0]) {
-                case 'getUserMedia':
-                case 'getUserMediaOnSuccess':
-                case 'getUserMediaOnFailure':
-                case 'navigator.mediaDevices.getUserMedia':
-                case 'navigator.mediaDevices.getUserMediaOnSuccess':
-                case 'navigator.mediaDevices.getUserMediaOnFailure':
-                case 'navigator.mediaDevices.getDisplayMedia':
-                case 'navigator.mediaDevices.getDisplayMediaOnSuccess':
-                case 'navigator.mediaDevices.getDisplayMediaOnFailure':
-                    client.getUserMedia.push({
-                        time: time,
-                        type: data[0],
-                        value: data[2]
-                    });
-                    break;
-                default:
-                    if (!client.peerConnections[data[1]]) {
-                        client.peerConnections[data[1]] = [];
-                        baseStats[data[1]] = {};
-                    }
-                    if (data[0] === 'getstats') { // delta-compressed
-                        data[2] = decompress(baseStats[data[1]], data[2]);
-                        baseStats[data[1]] = JSON.parse(JSON.stringify(data[2]));
-                    }
-                    if (data[0] === 'getStats' || data[0] === 'getstats') {
-                        data[2] = mangle(data[2]);
-                        data[0] = 'getStats';
-                    }
-                    client.peerConnections[data[1]].push({
-                        time: time,
-                        type: data[0],
-                        value: data[2]
-                    });
-                    break;
-                }
+    evt.target.disabled = 'disabled';
+    const files = evt.target.files;
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = (function(file) {
+        return function(e) {
+            let result = e.target.result;
+            if (typeof result === 'object') {
+                result = pako.inflate(result, {to: 'string'});
             }
-        });
-        thelog = client;
-      }
-      importUpdatesAndStats(thelog);
-    };
-  })(file);
-  if (file.type === 'application/gzip') {
-    reader.readAsArrayBuffer(files[0]);
-  } else {
-    reader.readAsText(files[0]);
-  }
+            if (result.indexOf('\n') === -1) {
+                // old format v0
+                thelog = JSON.parse(result);
+            } else {
+                // new format, multiple lines
+                const baseStats = {};
+                const lines = result.split('\n');
+                const client = JSON.parse(lines.shift());
+                fileFormat = client.fileFormat;
+                client.peerConnections = {};
+                client.getUserMedia = [];
+                lines.forEach(line => {
+                    if (line.length) {
+                        const data = JSON.parse(line);
+                        const time = new Date(data.time || data[data.length - 1]);
+                        delete data.time;
+                        switch(data[0]) {
+                            case 'getUserMedia':
+                            case 'getUserMediaOnSuccess':
+                            case 'getUserMediaOnFailure':
+                            case 'navigator.mediaDevices.getUserMedia':
+                            case 'navigator.mediaDevices.getUserMediaOnSuccess':
+                            case 'navigator.mediaDevices.getUserMediaOnFailure':
+                            case 'navigator.mediaDevices.getDisplayMedia':
+                            case 'navigator.mediaDevices.getDisplayMediaOnSuccess':
+                            case 'navigator.mediaDevices.getDisplayMediaOnFailure':
+                                client.getUserMedia.push({
+                                    time: time,
+                                    type: data[0],
+                                    value: data[2]
+                                });
+                                break;
+                            default:
+                                if (!client.peerConnections[data[1]]) {
+                                    client.peerConnections[data[1]] = [];
+                                    baseStats[data[1]] = {};
+                                }
+                                if (data[0] === 'getstats') { // delta-compressed
+                                    data[2] = decompress(baseStats[data[1]], data[2]);
+                                    baseStats[data[1]] = JSON.parse(JSON.stringify(data[2]));
+                                }
+                                if (data[0] === 'getStats' || data[0] === 'getstats') {
+                                    data[2] = mangle(data[2]);
+                                    data[0] = 'getStats';
+                                }
+                                client.peerConnections[data[1]].push({
+                                    time: time,
+                                    type: data[0],
+                                    value: data[2]
+                                });
+                                break;
+                        }
+                    }
+                });
+                thelog = client;
+            }
+            importUpdatesAndStats(thelog);
+        };
+    })(file);
+    if (file.type === 'application/gzip') {
+        reader.readAsArrayBuffer(files[0]);
+    } else {
+        reader.readAsText(files[0]);
+    }
 }
 
 function createContainers(connid, url) {
@@ -269,13 +269,13 @@ function processTraceEvent(table, event) {
     }
     if (event.type === 'iceConnectionStateChange') {
         switch(event.value) {
-        case 'ICEConnectionStateConnected':
-        case 'ICEConnectionStateCompleted':
-            row.style.backgroundColor = 'green';
-            break;
-        case 'ICEConnectionStateFailed':
-            row.style.backgroundColor = 'red';
-            break;
+            case 'ICEConnectionStateConnected':
+            case 'ICEConnectionStateCompleted':
+                row.style.backgroundColor = 'green';
+                break;
+            case 'ICEConnectionStateFailed':
+                row.style.backgroundColor = 'red';
+                break;
         }
     }
 

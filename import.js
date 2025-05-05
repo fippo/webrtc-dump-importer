@@ -1,25 +1,25 @@
 const SDPUtils = adapter.sdp;
 function doImport(evt) {
-  evt.target.disabled = true;
-  document.getElementById('useReferenceTime').disabled = true;
+    evt.target.disabled = true;
+    document.getElementById('useReferenceTime').disabled = true;
 
-  const files = evt.target.files;
-  const reader = new FileReader();
-  reader.onload = ((file) => {
-    return (e) => {
-      let result = e.target.result;
-      if (typeof result === 'object') {
-        result = pako.inflate(result, {to: 'string'});
-      }
-      const theLog = JSON.parse(result);
-      importUpdatesAndStats(theLog);
-    };
-  })(files[0]);
-  if (files[0].type === 'application/gzip') {
-    reader.readAsArrayBuffer(files[0]);
-  } else {
-    reader.readAsText(files[0]);
-  }
+    const files = evt.target.files;
+    const reader = new FileReader();
+    reader.onload = ((file) => {
+        return (e) => {
+            let result = e.target.result;
+            if (typeof result === 'object') {
+                result = pako.inflate(result, {to: 'string'});
+            }
+            const theLog = JSON.parse(result);
+            importUpdatesAndStats(theLog);
+        };
+    })(files[0]);
+    if (files[0].type === 'application/gzip') {
+        reader.readAsArrayBuffer(files[0]);
+    } else {
+        reader.readAsText(files[0]);
+    }
 }
 
 function createCandidateTable(container, allStats) {
@@ -56,12 +56,12 @@ function createCandidateTable(container, allStats) {
         if (statsType === 'transport' || reportname.startsWith('RTCTransport')) {
             if (!transports[t]) transports[t] = {};
             switch(comp) {
-            case 'bytesSent':
-            case 'bytesReceived':
-            case 'dtlsState':
-            case 'selectedCandidatePairId':
-                transports[t][comp] = stats[stats.length - 1];
-            default:
+                case 'bytesSent':
+                case 'bytesReceived':
+                case 'dtlsState':
+                case 'selectedCandidatePairId':
+                    transports[t][comp] = stats[stats.length - 1];
+                default:
                 // console.log(reportname, comp, stats);
             }
         } else if (statsType === 'candidate-pair' || reportname.startsWith('RTCIceCandidatePair')) {
@@ -257,8 +257,8 @@ function processGetUserMedia(data) {
     container.appendChild(table);
 
     const columns = ['request_type', 'origin', 'pid', 'rid',
-       'audio', 'video', 'audio_track_info', 'video_track_info',
-       'error', 'error_message'];
+        'audio', 'video', 'audio_track_info', 'video_track_info',
+        'error', 'error_message'];
     const displayNames = {
         request_id: 'id',
         reqest_type: 'type',
@@ -389,24 +389,24 @@ function processTraceEvent(event, state) {
             summary.innerText = lines[0] +
                 ' (' + (lines.length - 1) + ' more lines)' +
                 (mid ? ' mid=' + mid : '');
-	    if (lines[0].startsWith('m=')) {
-		summary.innerText += ' direction=' + direction;
+            if (lines[0].startsWith('m=')) {
+                summary.innerText += ' direction=' + direction;
                 const is_rejected = SDPUtils.parseMLine(lines[0]).port === 0;
                 if (is_rejected) {
-		    summary.innerText += ' rejected';
+                    summary.innerText += ' rejected';
                     const was_rejected = remote_sections && remote_sections[index] &&
                         SDPUtils.parseMLine(remote_sections[index]).port === 0;
-		    if (['createOffer', 'createAnswer', 'setLocalDescription'].includes(event.type)) {
-			summary.style.backgroundColor = '#ddd';
-		    }
+                    if (['createOffer', 'createAnswer', 'setLocalDescription'].includes(event.type)) {
+                        summary.style.backgroundColor = '#ddd';
+                    }
                     details.open = false;
-		}
+                }
                 if (last_sections && last_sections[index] !== sections[index]) {
                     summary.innerText += ' munged';
                     summary.style.backgroundColor = '#FBCEB1';
                     details.open = true;
                 }
-	    }
+            }
             details.appendChild(summary);
             el.appendChild(details);
         });
@@ -430,13 +430,13 @@ function processTraceEvent(event, state) {
     // Likewise, highlight (ice)connectionstates.
     if (['iceconnectionstatechange', 'connectionstatechange'].includes(event.type)) {
         switch(event.value) {
-        case 'connected':
-        case 'completed':
-            row.style.backgroundColor = 'green';
-            break;
-        case 'failed':
-            row.style.backgroundColor = 'red';
-            break;
+            case 'connected':
+            case 'completed':
+                row.style.backgroundColor = 'green';
+                break;
+            case 'failed':
+                row.style.backgroundColor = 'red';
+                break;
         }
     }
     return row;
@@ -749,9 +749,9 @@ function processConnections(connectionIds, data) {
                 'trackIdentifier',
                 'id',
             ].filter(key => series[key] !== undefined)
-            .map(key => {
-                return ({statsType: 'type', trackIdentifier: 'track'}[key] || key) + '=' + JSON.stringify(series[key]);
-            }).join(', ');
+                .map(key => {
+                    return ({statsType: 'type', trackIdentifier: 'track'}[key] || key) + '=' + JSON.stringify(series[key]);
+                }).join(', ');
             const titleElement = document.createElement('summary');
             titleElement.innerText = title;
             container.appendChild(titleElement);
@@ -769,11 +769,11 @@ function processConnections(connectionIds, data) {
                     plotBands,
                 },
                 yAxis: [{
-                        min: series.kind ? 0 : undefined
-                    },
-                    {
-                        min: series.kind ? 0 : undefined
-                    },
+                    min: series.kind ? 0 : undefined
+                },
+                {
+                    min: series.kind ? 0 : undefined
+                },
                 ],
                 chart: {
                     zoomType: 'x',
