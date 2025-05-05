@@ -402,9 +402,16 @@ function processTraceEvent(event, state) {
                     details.open = false;
                 }
                 if (last_sections && last_sections[index] !== sections[index]) {
-                    summary.innerText += ' munged';
-                    summary.style.backgroundColor = '#FBCEB1';
-                    details.open = true;
+                    // Ignore triggering from simple reordering which is ok-ish.
+                    const last_lines = SDPUtils.splitLines(last_sections[index]).sort();
+                    const current_lines = SDPUtils.splitLines(sections[index]).sort();
+                    if (last_lines.findIndex((line, index) => line !== current_lines[index]) !== -1) {
+                        summary.innerText += ' munged';
+                        summary.style.backgroundColor = '#FBCEB1';
+                        details.open = true;
+                    } else {
+                        summary.innerText += ' reordered';
+                    }
                 }
             }
             details.appendChild(summary);
