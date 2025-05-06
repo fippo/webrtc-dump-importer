@@ -452,7 +452,12 @@ function processTraceEvent(event, state) {
 const graphs = {};
 const containers = {};
 function importUpdatesAndStats(data) {
-    document.getElementById('userAgent').innerText = data.UserAgent;
+    if (data.UserAgentData && data.UserAgentData.length >= 2) {
+        document.getElementById('userAgent').innerText +=
+            data.UserAgentData[2].brand + ' ' +
+            data.UserAgentData[1].version + ' / ' ;
+    }
+    document.getElementById('userAgent').innerText += data.UserAgent;
     document.getElementById('tables').style.display = 'block';
 
     // FIXME: also display GUM calls (can they be correlated to addStream?)
