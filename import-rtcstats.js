@@ -1,27 +1,3 @@
-function decompress(baseStats, newStats) {
-    const timestamp = newStats.timestamp
-    delete newStats.timestamp;
-    Object.keys(newStats).forEach(id => {
-        if (!baseStats[id]) {
-            if (newStats[id].timestamp === 0) {
-                newStats[id].timestamp = timestamp;
-            }
-            baseStats[id] = newStats[id];
-        } else {
-            const report = newStats[id];
-            if (report.timestamp === 0) {
-                report.timestamp = timestamp;
-            } else if (!report.timestamp) {
-                report.timestamp = new Date(baseStats[id].timestamp).getTime();
-            }
-            Object.keys(report).forEach(name => {
-                baseStats[id][name] = report[name];
-            });
-        }
-    });
-    return baseStats;
-}
-
 let fileFormat;
 function doImport(evt) {
     evt.target.disabled = 'disabled';
@@ -36,61 +12,63 @@ function doImport(evt) {
             }
             if (result.indexOf('\n') === -1) {
                 // old format v0
-                thelog = JSON.parse(result);
-            } else {
-                // new format, multiple lines
-                const baseStats = {};
-                const lines = result.split('\n');
-                const client = JSON.parse(lines.shift());
-                fileFormat = client.fileFormat;
-                client.peerConnections = {};
-                client.getUserMedia = [];
-                lines.forEach(line => {
-                    if (line.length) {
-                        const data = JSON.parse(line);
-                        const time = new Date(data.time || data[data.length - 1]);
-                        delete data.time;
-                        switch(data[0]) {
-                            case 'getUserMedia':
-                            case 'getUserMediaOnSuccess':
-                            case 'getUserMediaOnFailure':
-                            case 'navigator.mediaDevices.getUserMedia':
-                            case 'navigator.mediaDevices.getUserMediaOnSuccess':
-                            case 'navigator.mediaDevices.getUserMediaOnFailure':
-                            case 'navigator.mediaDevices.getDisplayMedia':
-                            case 'navigator.mediaDevices.getDisplayMediaOnSuccess':
-                            case 'navigator.mediaDevices.getDisplayMediaOnFailure':
-                                client.getUserMedia.push({
-                                    time: time,
-                                    type: data[0],
-                                    value: data[2]
-                                });
-                                break;
-                            default:
-                                if (!client.peerConnections[data[1]]) {
-                                    client.peerConnections[data[1]] = [];
-                                    baseStats[data[1]] = {};
-                                }
-                                if (data[0] === 'getstats') { // delta-compressed
-                                    data[2] = decompress(baseStats[data[1]], data[2]);
-                                    baseStats[data[1]] = JSON.parse(JSON.stringify(data[2]));
-                                }
-                                if (data[0] === 'getStats' || data[0] === 'getstats') {
-                                    data[2] = mangle(data[2]);
-                                    data[0] = 'getStats';
-                                }
-                                client.peerConnections[data[1]].push({
-                                    time: time,
-                                    type: data[0],
-                                    value: data[2]
-                                });
-                                break;
-                        }
-                    }
-                });
-                thelog = client;
+                console.error('Not a supported format, maybe webrtc-internals?');
+                return;
             }
-            importUpdatesAndStats(thelog);
+
+            const baseStats = {};
+            const lines = result.split('\n');
+            // The first line must be a JSON object with metadata.
+            console.log(lines[0]);
+            const theLog = JSON.parse(lines.shift());
+            fileFormat = theLog.fileFormat;
+            theLog.peerConnections = {};
+            theLog.getUserMedia = [];
+            lines.forEach(line => {
+                if (!line.length) {
+                    return; // Ignore empty lines.
+                }
+                const data = JSON.parse(line);
+                if (!Array.isArray(data) || data.length !== 4) {
+                    console.log('Unsupported line', line);
+                    return;
+                }
+                let [method, connection_id, value, time] = data;
+                time = new Date(time);
+                switch(method) {
+                    case 'getUserMedia':
+                    case 'getUserMediaOnSuccess':
+                    case 'getUserMediaOnFailure':
+                    case 'navigator.mediaDevices.getUserMedia':
+                    case 'navigator.mediaDevices.getUserMediaOnSuccess':
+                    case 'navigator.mediaDevices.getUserMediaOnFailure':
+                    case 'navigator.mediaDevices.getDisplayMedia':
+                    case 'navigator.mediaDevices.getDisplayMediaOnSuccess':
+                    case 'navigator.mediaDevices.getDisplayMediaOnFailure':
+                        theLog.getUserMedia.push({
+                            time,
+                            type: method,
+                            value,
+                        });
+                        break;
+                    default:
+                        if (!theLog.peerConnections[connection_id]) {
+                            theLog.peerConnections[connection_id] = [];
+                            baseStats[connection_id] = {};
+                        }
+                        if (method === 'getstats') { // delta-compressed stats
+                            value = decompress(baseStats[connection_id], value);
+                            baseStats[connection_id] = JSON.parse(JSON.stringify(value));
+                        }
+                        theLog.peerConnections[connection_id].push({
+                            time,
+                            type: method,
+                            value,
+                        });
+                        break;
+                }
+            });
+            importUpdatesAndStats(theLog);
         };
     })(file);
     if (file.type === 'application/gzip') {
