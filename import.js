@@ -533,20 +533,3 @@ function processConnections(connectionIds, data) {
         }
     });
 }
-
-function filterStatsGraphs(event, container) {
-    const filter =  event.target.value;
-    const filters = filter.split(',');
-    container.childNodes.forEach(node => {
-        if (node.nodeName !== 'DETAILS') {
-            return;
-        }
-        const statsType = node.attributes['data-statsType'];
-        if (!filter || filters.includes(statsType) ||
-            filters.find(f => statsType.includes(f))) {
-            node.style.display = 'block';
-        } else {
-            node.style.display = 'none';
-        }
-    });
-}
