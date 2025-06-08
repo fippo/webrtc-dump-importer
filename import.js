@@ -1,4 +1,4 @@
-import {createContainers, processGetUserMedia, createCandidateTable} from './import-common.js';
+import {createContainers, processGetUserMedia, createCandidateTable, processDescriptionEvent} from './import-common.js';
 
 const SDPUtils = window.adapter.sdp;
 
@@ -61,7 +61,6 @@ function processTraceEvent(event, state) {
     }
     if (event.value.indexOf(', sdp: ') != -1) {
         const [type, sdp] = event.value.substr(6).split(', sdp: ');
-        const sections = SDPUtils.splitSections(sdp);
         let last_sections;
         let remote_sections;
         if (event.type === 'setLocalDescription') {
@@ -75,63 +74,7 @@ function processTraceEvent(event, state) {
                 remote_sections = SDPUtils.splitSections(remote_sdp);
             }
         }
-
-        el.innerText += ' (type: "' + type + '", ' + sections.length + ' sections)';
-        if (last_sections) {
-            el.innerText += ' munged';
-            el.style.backgroundColor = '#FBCEB1';
-        }
-        const copyBtn = document.createElement('button');
-        copyBtn.innerText = '\uD83D\uDCCB'; // clipboard
-        copyBtn.className = 'copyBtn';
-        copyBtn.onclick = () => {
-            navigator.clipboard.writeText(JSON.stringify({type, sdp}));
-        };
-        el.appendChild(copyBtn);
-
-        el = document.createElement('pre');
-        sections.forEach((section, index) => {
-            const lines = SDPUtils.splitLines(section);
-            const mid = SDPUtils.getMid(section);
-            const direction = SDPUtils.getDirection(section, sections[0]);
-
-            const details = document.createElement('details');
-            // Fold by default for large SDP.
-            details.open = sections.length < 10 && direction !== 'inactive';
-            details.innerText = section;
-
-            const summary = document.createElement('summary');
-            summary.innerText = lines[0] +
-                ' (' + (lines.length - 1) + ' more lines)' +
-                (mid ? ' mid=' + mid : '');
-            if (lines[0].startsWith('m=')) {
-                summary.innerText += ' direction=' + direction;
-                const is_rejected = SDPUtils.parseMLine(lines[0]).port === 0;
-                if (is_rejected) {
-                    summary.innerText += ' rejected';
-                    const was_rejected = remote_sections && remote_sections[index] &&
-                        SDPUtils.parseMLine(remote_sections[index]).port === 0;
-                    if (['createOffer', 'createAnswer', 'setLocalDescription'].includes(event.type)) {
-                        summary.style.backgroundColor = '#ddd';
-                    }
-                    details.open = false;
-                }
-                if (last_sections && last_sections[index] !== sections[index]) {
-                    // Ignore triggering from simple reordering which is ok-ish.
-                    const last_lines = SDPUtils.splitLines(last_sections[index]).sort();
-                    const current_lines = SDPUtils.splitLines(sections[index]).sort();
-                    if (last_lines.findIndex((line, index) => line !== current_lines[index]) !== -1) {
-                        summary.innerText += ' munged';
-                        summary.style.backgroundColor = '#FBCEB1';
-                        details.open = true;
-                    } else {
-                        summary.innerText += ' reordered';
-                    }
-                }
-            }
-            details.appendChild(summary);
-            el.appendChild(details);
-        });
+        processDescriptionEvent(el, event.type, {type, sdp}, last_sections, remote_sections);
     } else {
         el = document.createElement('pre');
         el.innerText = event.value;
