@@ -368,3 +368,196 @@ export function processGetUserMedia(data, parentElement) {
         table.appendChild(row);
     });
 }
+
+export function createGraphOptions(statsId, statsType, reports, referenceTime) {
+    const series = [];
+    series.statsType = statsType;
+    const plotBands = [];
+    reports.sort().forEach(report => {
+        const [name, data, statsType] = report;
+        if (name === 'kind' || name === 'mediaType') {
+            series.kind = data[0][1];
+        }
+        if (name === 'trackIdentifier') {
+            series.trackIdentifier = data[0][1];
+        }
+        if (name === 'ssrc') {
+            series.ssrc = data[0][1];
+        }
+        if (name === 'label') { // for datachannels.
+            series.label = data[0][1];
+        }
+        if (name === 'active' && statsType === 'outbound-rtp') {
+            // set up a x-axis plotbands:
+            // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
+            data.filter((el, index, values) => {
+                return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
+            }).forEach((item, index, values) => {
+                if (item[1] === true) {
+                    return;
+                }
+                plotBands.push({
+                    from: item[0],
+                    to: (values[index + 1] || [])[0],
+                    label: {
+                        align: 'center',
+                        text: 'sender disabled',
+                    },
+                });
+            });
+            return;
+        }
+        if (name === 'qualityLimitationReason' && statsType === 'outbound-rtp') {
+            // set up a x-axis plotbands:
+            // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
+            data.filter((el, index, values) => {
+                return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
+            }).forEach((item, index, values) => {
+                if (item[1] === 'none') {
+                    return;
+                }
+                plotBands.push({
+                    from: item[0],
+                    to: (values[index + 1] || [])[0],
+                    label: {
+                        align: 'center',
+                        text: item[1] + '-limited',
+                    },
+                });
+            });
+            return;
+        }
+        if (['encoderImplementation', 'decoderImplementation'].includes(name) && ['inbound-rtp', 'outbound-rtp'].includes(statsType)) {
+            // set up a x-axis plotbands:
+            // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
+            data.filter((el, index, values) => {
+                return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
+            }).forEach((item, index, values) => {
+                plotBands.push({
+                    from: item[0],
+                    to: (values[index + 1] || [])[0],
+                    label: {
+                        align: 'left',
+                        text: name + ': ' + item[1],
+                    },
+                    color: index % 2 === 0 ? 'white' : 'rgba(253, 253, 222, 0.3)',
+                });
+            });
+            return;
+        }
+        if (name === 'scalabilityMode' && statsType === 'outbound-rtp') {
+            // set up a x-axis plotbands:
+            // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
+            data.filter((el, index, values) => {
+                return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
+            }).forEach((item, index, values) => {
+                plotBands.push({
+                    from: item[0],
+                    to: (values[index + 1] || [])[0],
+                    label: {
+                        align: 'right',
+                        text: name + ': ' + item[1],
+                        y: 30,
+                    },
+                    // This one is fully transparent (white with 100% alpha) since it overlaps with encoderImplementation.
+                    color: (255, 255, 255, 1),
+                    // But has a 1px border so it is possible to see changes unrelated to codec switches.
+                    borderWidth: 1,
+                    borderColor: 'rgba(189, 189, 189, 0.3)',
+                });
+            });
+            return;
+        }
+
+        const statsForLabels = [
+            'mid', 'rid',
+            'ssrc', 'rtxSsrc', 'fecSsrc',
+            'encoderImplementation', 'decoderImplementation', 'scalabilityMode',
+            'scalabilityMode', '[codec]',
+            'label', // for datachannels
+        ];
+        if (statsForLabels.includes(name)) {
+            series[name] = data[0][1];
+        }
+        series.id = statsId;
+
+        if (typeof(data[0][1]) !== 'number') return;
+        const ignoredSeries = [
+            'timestamp',
+            'protocol', 'dataChannelIdentifier',
+            'streamIdentifier', 'trackIdentifier',
+            'priority', 'port',
+            'ssrc', 'rtxSsrc', 'fecSsrc',
+            'mid', 'rid',
+        ];
+        if (ignoredSeries.includes(name)) {
+            return;
+        }
+
+        const hiddenSeries = [
+            'bytesReceived', 'bytesSent',
+            'headerBytesReceived', 'headerBytesSent',
+            'packetsReceived', 'packetsSent',
+            'qpSum',
+            'framesEncoded', 'framesDecoded', 'totalEncodeTime',
+            'lastPacketReceivedTimestamp', 'lastPacketSentTimestamp',
+            'remoteTimestamp', 'estimatedPlayoutTimestamp',
+            'audioInputLevel', 'audioOutputLevel',
+            'totalSamplesDuration', 'totalSamplesReceived',
+            'jitterBufferEmittedCount',
+        ];
+        const secondYAxis = [
+            // candidate-pair
+            'consentRequestsSent', 'requestsSent', 'requestsReceived', 'responsesSent', 'responsesReceived',
+            // data-channel
+            '[messagesReceived/s]', '[messagesSent/s]',
+            // inbound-rtp
+            '[framesReceived/s]', '[framesDecoded/s]', '[keyFramesDecoded/s]', 'frameWidth', 'frameHeight',
+            // outbound-rtp'
+            '[framesSent/s]', '[framesEncoded/s]', '[keyFramesEncoded/s]', 'frameWidth', 'frameHeight',
+        ];
+
+        series.push({
+            name,
+            data,
+            visible: !hiddenSeries.includes(name),
+            yAxis: secondYAxis.includes(name) ? 1 : 0,
+        });
+    });
+
+    // Optionally start all graphs at the same point in time.
+    if (referenceTime) {
+        series
+            .filter(s => s.data[0].length)
+            .map(s => {
+                if (s.data[0] !== referenceTime) {
+                    s.data.unshift([referenceTime, undefined]);
+                }
+            });
+    }
+
+    // TODO: it would be nice to sort the graphs such that same mids go together.
+    if (series.length === 0) {
+        return;
+    }
+    return {
+        title: {
+            text: null
+        },
+        xAxis: {
+            type: 'datetime',
+            plotBands,
+        },
+        yAxis: [{
+            min: series.kind ? 0 : undefined
+        },
+        {
+            min: series.kind ? 0 : undefined
+        },
+        ],
+        chart: {
+            zoomType: 'x',
+        },
+        series,
+    };
+}

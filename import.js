@@ -1,4 +1,4 @@
-import {createContainers, processGetUserMedia, createCandidateTable, processDescriptionEvent} from './import-common.js';
+import {createContainers, processGetUserMedia, createCandidateTable, processDescriptionEvent, createGraphOptions} from './import-common.js';
 
 const SDPUtils = window.adapter.sdp;
 
@@ -109,6 +109,8 @@ function processTraceEvent(event, state) {
 
 const graphs = {};
 const containers = {};
+window.graphs = graphs;
+window.containers = containers;
 function importUpdatesAndStats(data) {
     if (data.UserAgentData && data.UserAgentData.length >= 2) {
         document.getElementById('userAgent').innerText +=
@@ -185,7 +187,7 @@ function processConnections(connectionIds, data) {
     window.setTimeout(processConnections, 0, connectionIds, data);
 
     const connection = data.PeerConnections[connid];
-    const referenceTime = connection.updateLog.length
+    const referenceTime = document.getElementById('useReferenceTime').checked && connection.updateLog.length
         ? new Date(connection.updateLog[0].time).getTime()
         : undefined;
     graphs[connid] = {};
@@ -235,244 +237,62 @@ function processConnections(connectionIds, data) {
         // ignore useless graphs
         if (['local-candidate', 'remote-candidate', 'codec', 'stream', 'track'].includes(statsType)) return;
 
-        const series = [];
-        series.statsType = statsType;
-        const plotBands = [];
-        reports.sort().forEach(report => {
-            const [name, data, statsType] = report;
-            if (name === 'kind' || name === 'mediaType') {
-                series.kind = data[0][1];
-            }
-            if (name === 'trackIdentifier') {
-                series.trackIdentifier = data[0][1];
-            }
-            if (name === 'ssrc') {
-                series.ssrc = data[0][1];
-            }
-            if (name === 'label') { // for datachannels.
-                series.label = data[0][1];
-            }
-            if (name === 'active' && statsType === 'outbound-rtp') {
-                // set up a x-axis plotbands:
-                // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
-                data.filter((el, index, values) => {
-                    return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
-                }).forEach((item, index, values) => {
-                    if (item[1] === true) {
-                        return;
-                    }
-                    plotBands.push({
-                        from: item[0],
-                        to: (values[index + 1] || [])[0],
-                        label: {
-                            align: 'center',
-                            text: 'sender disabled',
-                        },
-                    });
-                });
-                return;
-            }
-            if (name === 'qualityLimitationReason' && statsType === 'outbound-rtp') {
-                // set up a x-axis plotbands:
-                // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
-                data.filter((el, index, values) => {
-                    return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
-                }).forEach((item, index, values) => {
-                    if (item[1] === 'none') {
-                        return;
-                    }
-                    plotBands.push({
-                        from: item[0],
-                        to: (values[index + 1] || [])[0],
-                        label: {
-                            align: 'center',
-                            text: item[1] + '-limited',
-                        },
-                    });
-                });
-                return;
-            }
-            if (['encoderImplementation', 'decoderImplementation'].includes(name) && ['inbound-rtp', 'outbound-rtp'].includes(statsType)) {
-                // set up a x-axis plotbands:
-                // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
-                data.filter((el, index, values) => {
-                    return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
-                }).forEach((item, index, values) => {
-                    plotBands.push({
-                        from: item[0],
-                        to: (values[index + 1] || [])[0],
-                        label: {
-                            align: 'left',
-                            text: name + ': ' + item[1],
-                        },
-                        color: index % 2 === 0 ? 'white' : 'rgba(253, 253, 222, 0.3)',
-                    });
-                });
-                return;
-            }
-            if (name === 'scalabilityMode' && statsType === 'outbound-rtp') {
-                // set up a x-axis plotbands:
-                // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
-                data.filter((el, index, values) => {
-                    return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
-                }).forEach((item, index, values) => {
-                    plotBands.push({
-                        from: item[0],
-                        to: (values[index + 1] || [])[0],
-                        label: {
-                            align: 'right',
-                            text: name + ': ' + item[1],
-                            y: 30,
-                        },
-                        // This one is fully transparent (white with 100% alpha) since it overlaps with encoderImplementation.
-                        color: (255, 255, 255, 1),
-                        // But has a 1px border so it is possible to see changes unrelated to codec switches.
-                        borderWidth: 1,
-                        borderColor: 'rgba(189, 189, 189, 0.3)',
-                    });
-                });
-                return;
-            }
-
-            const statsForLabels = [
-                'mid', 'rid',
-                'ssrc', 'rtxSsrc', 'fecSsrc',
-                'encoderImplementation', 'decoderImplementation', 'scalabilityMode',
-                'scalabilityMode', '[codec]',
-                'label', // for datachannels
-            ];
-            if (statsForLabels.includes(name)) {
-                series[name] = data[0][1];
-            }
-            series.id = reportname;
-
-            if (typeof(data[0][1]) !== 'number') return;
-            const ignoredSeries = [
-                'timestamp',
-                'protocol', 'dataChannelIdentifier',
-                'streamIdentifier', 'trackIdentifier',
-                'priority', 'port',
-                'ssrc', 'rtxSsrc', 'fecSsrc',
-                'mid', 'rid',
-            ];
-            if (ignoredSeries.includes(name)) {
-                return;
-            }
-
-            const hiddenSeries = [
-                'bytesReceived', 'bytesSent',
-                'headerBytesReceived', 'headerBytesSent',
-                'packetsReceived', 'packetsSent',
-                'qpSum',
-                'framesEncoded', 'framesDecoded', 'totalEncodeTime',
-                'lastPacketReceivedTimestamp', 'lastPacketSentTimestamp',
-                'remoteTimestamp', 'estimatedPlayoutTimestamp',
-                'audioInputLevel', 'audioOutputLevel',
-                'totalSamplesDuration', 'totalSamplesReceived',
-                'jitterBufferEmittedCount',
-            ];
-            const secondYAxis = [
-                // candidate-pair
-                'consentRequestsSent', 'requestsSent', 'requestsReceived', 'responsesSent', 'responsesReceived',
-                // data-channel
-                '[messagesReceived/s]', '[messagesSent/s]',
-                // inbound-rtp
-                '[framesReceived/s]', '[framesDecoded/s]', '[keyFramesDecoded/s]', 'frameWidth', 'frameHeight',
-                // outbound-rtp'
-                '[framesSent/s]', '[framesEncoded/s]', '[keyFramesEncoded/s]', 'frameWidth', 'frameHeight',
-            ];
-
-            series.push({
-                name,
-                data,
-                visible: !hiddenSeries.includes(name),
-                yAxis: secondYAxis.includes(name) ? 1 : 0,
-            });
-        });
-
-        // Optionally start all graphs at the same point in time.
-        if (document.getElementById('useReferenceTime').checked && referenceTime !== undefined) {
-            series
-                .filter(s => s.data[0].length)
-                .map(s => {
-                    console.log(s.name, s.data);
-                    if (s.data[0] !== referenceTime) {
-                        s.data.unshift([referenceTime, undefined]);
-                    }
-                });
+        const graphOptions = createGraphOptions(reportname, statsType, reports, referenceTime);
+        if (!graphOptions) {
+            return;
         }
 
-        // TODO: it would be nice to sort the graphs such that same mids go together.
-        if (series.length > 0) {
-            const container = document.createElement('details');
-            if (series.statsType) {
-                container.attributes['data-statsType'] = series.statsType;
-            }
-            containers[connid].graphs.appendChild(container);
-            // TODO: keep in sync with
-            // https://source.chromium.org/chromium/chromium/src/+/main:content/browser/webrtc/resources/stats_helper.js
-            const title = [
-                'statsType', 'kind',
-                'ssrc', 'rtxSsrc', 'fecSsrc',
-                'mid', 'rid',
-                'label',
-                '[codec]',
-                'encoderImplementation', 'decoderImplementation',
-                'trackIdentifier',
-                'id',
-            ].filter(key => series[key] !== undefined)
-                .map(key => {
-                    return ({statsType: 'type', trackIdentifier: 'track'}[key] || key) + '=' + JSON.stringify(series[key]);
-                }).join(', ');
-            const titleElement = document.createElement('summary');
-            titleElement.innerText = title;
-            container.appendChild(titleElement);
-
-            const d = document.createElement('div');
-            d.id = 'chart_' + Date.now();
-            d.classList.add('graph');
-            container.appendChild(d);
-            const graph = new Highcharts.Chart({
-                title: {
-                    text: null
-                },
-                xAxis: {
-                    type: 'datetime',
-                    plotBands,
-                },
-                yAxis: [{
-                    min: series.kind ? 0 : undefined
-                },
-                {
-                    min: series.kind ? 0 : undefined
-                },
-                ],
-                chart: {
-                    zoomType: 'x',
-                    renderTo : d.id,
-                },
-                series,
-            });
-            graphs[connid][reportname] = graph;
-
-            // expand the graph when opening
-            container.ontoggle = () => container.open && graph.reflow();
-
-            // draw checkbox to turn off everything
-            ((reportname, container, graph) => {
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                container.appendChild(checkbox);
-                const label = document.createElement('label');
-                label.innerText = 'Turn on/off all data series'
-                container.appendChild(label);
-                checkbox.onchange = function() {
-                    graph.series.forEach(series => {
-                        series.setVisible(!checkbox.checked, false);
-                    });
-                    graph.redraw();
-                };
-            })(reportname, container, graph);
+        const container = document.createElement('details');
+        if (graphOptions.series.statsType) {
+            container.attributes['data-statsType'] = graphOptions.series.statsType;
         }
+        containers[connid].graphs.appendChild(container);
+        // TODO: keep in sync with
+        // https://source.chromium.org/chromium/chromium/src/+/main:content/browser/webrtc/resources/stats_helper.js
+        const title = [
+            'statsType', 'kind',
+            'ssrc', 'rtxSsrc', 'fecSsrc',
+            'mid', 'rid',
+            'label',
+            '[codec]',
+            'encoderImplementation', 'decoderImplementation',
+            'trackIdentifier',
+            'id',
+        ].filter(key => graphOptions.series[key] !== undefined)
+            .map(key => {
+                return ({statsType: 'type', trackIdentifier: 'track'}[key] || key) + '=' + JSON.stringify(graphOptions.series[key]);
+            }).join(', ');
+
+        const titleElement = document.createElement('summary');
+        titleElement.innerText = title;
+        container.appendChild(titleElement);
+
+        const d = document.createElement('div');
+        d.id = 'chart_' + Date.now();
+        d.classList.add('graph');
+        container.appendChild(d);
+
+        const graph = new Highcharts.Chart(d, graphOptions);
+        graphs[connid][reportname] = graph;
+
+        // expand the graph when opening
+        container.ontoggle = () => container.open && graph.reflow();
+
+        // draw checkbox to turn off everything
+        ((reportname, container, graph) => {
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            container.appendChild(checkbox);
+            const label = document.createElement('label');
+            label.innerText = 'Turn on/off all data series'
+            container.appendChild(label);
+            checkbox.onchange = function() {
+                graph.series.forEach(series => {
+                    series.setVisible(!checkbox.checked, false);
+                });
+                graph.redraw();
+            };
+        })(reportname, container, graph);
     });
 }
+
