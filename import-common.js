@@ -349,20 +349,12 @@ export function createGraphOptions(statsId, statsType, reports, referenceTime) {
     const series = [];
     series.statsType = statsType;
     const plotBands = [];
+    const labels = {
+        type: statsType,
+        id: statsId,
+    };
     reports.sort().forEach(report => {
         const [name, data, statsType] = report;
-        if (name === 'kind' || name === 'mediaType') {
-            series.kind = data[0][1];
-        }
-        if (name === 'trackIdentifier') {
-            series.trackIdentifier = data[0][1];
-        }
-        if (name === 'ssrc') {
-            series.ssrc = data[0][1];
-        }
-        if (name === 'label') { // for datachannels.
-            series.label = data[0][1];
-        }
         if (name === 'active' && statsType === 'outbound-rtp') {
             // set up a x-axis plotbands:
             // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
@@ -446,14 +438,14 @@ export function createGraphOptions(statsId, statsType, reports, referenceTime) {
         }
 
         const statsForLabels = [
-            'mid', 'rid',
+            'kind', 'mid', 'rid',
             'ssrc', 'rtxSsrc', 'fecSsrc',
             'encoderImplementation', 'decoderImplementation', 'scalabilityMode',
             'scalabilityMode', '[codec]',
             'label', // for datachannels
         ];
         if (statsForLabels.includes(name)) {
-            series[name] = data[0][1];
+            labels[name] = data[0][1];
         }
         series.id = statsId;
 
@@ -535,5 +527,6 @@ export function createGraphOptions(statsId, statsType, reports, referenceTime) {
             zoomType: 'x',
         },
         series,
+        labels,
     };
 }

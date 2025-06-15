@@ -272,7 +272,7 @@ function processConnections(connectionIds, data) {
         // TODO: keep in sync with
         // https://source.chromium.org/chromium/chromium/src/+/main:content/browser/webrtc/resources/stats_helper.js
         const title = [
-            'statsType', 'kind',
+            'type', 'kind',
             'ssrc', 'rtxSsrc', 'fecSsrc',
             'mid', 'rid',
             'label',
@@ -280,9 +280,9 @@ function processConnections(connectionIds, data) {
             'encoderImplementation', 'decoderImplementation',
             'trackIdentifier',
             'id',
-        ].filter(key => graphOptions.series[key] !== undefined)
+        ].filter(key => graphOptions.labels[key] !== undefined)
             .map(key => {
-                return ({statsType: 'type', trackIdentifier: 'track'}[key] || key) + '=' + JSON.stringify(graphOptions.series[key]);
+                return ({statsType: 'type', trackIdentifier: 'track'}[key] || key) + '=' + JSON.stringify(graphOptions.labels[key]);
             }).join(', ');
 
         const titleElement = document.createElement('summary');
