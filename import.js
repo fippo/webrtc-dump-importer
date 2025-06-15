@@ -179,7 +179,19 @@ function importUpdatesAndStats(data) {
             }
         }
         if (!legacy) {
-            createCandidateTable(parseStats(connection), containers[connid].candidates);
+            const stats = parseStats(connection);
+            const lastStats = {};
+            for (let id in stats) {
+                const report = stats[id];
+                const lastReport = {type: report.type};
+                Object.keys(report).forEach(property => {
+                    if (!Array.isArray(report[property])) return;
+                    const [key, values] = report[property];
+                    lastReport[key] = values[values.length - 1][1];
+                });
+                lastStats[id] = lastReport;
+            }
+            createCandidateTable(lastStats, containers[connid].candidates);
         } else {
             document.getElementById('legacy').style.display = 'block';
         }

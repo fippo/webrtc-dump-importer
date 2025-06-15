@@ -153,7 +153,7 @@ export function createContainers(connid, url, containers) {
     return container;
 }
 
-export function createCandidateTable(stats, parentElement) {
+export function createCandidateTable(lastStats, parentElement) {
     const head = document.createElement('tr');
     [
         'Transport id',
@@ -175,17 +175,6 @@ export function createCandidateTable(stats, parentElement) {
     });
     parentElement.appendChild(head);
 
-    const lastStats = {};
-    for (let id in stats) {
-        const report = stats[id];
-        const lastReport = {type: report.type};
-        Object.keys(report).forEach(property => {
-            if (!Array.isArray(report[property])) return;
-            const [key, values] = report[property];
-            lastReport[key] = values[values.length - 1][1];
-        });
-        lastStats[id] = lastReport;
-    }
     for (let transportId in lastStats) {
         if (lastStats[transportId].type !== 'transport') continue;
         const transport = lastStats[transportId];
