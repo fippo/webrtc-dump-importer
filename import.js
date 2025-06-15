@@ -123,47 +123,12 @@ function importUpdatesAndStats(data) {
     // FIXME: also display GUM calls (can they be correlated to addStream?)
     processGetUserMedia(data.getUserMedia, document.getElementById('tables'));
 
-    // first, display the updateLog
+    for (let connid in data.PeerConnections) {
+        const container = createContainers(connid, data.PeerConnections[connid].url, containers);
+        document.getElementById('tables').appendChild(container);
+    }
     for (let connid in data.PeerConnections) {
         const connection = data.PeerConnections[connid];
-        const container = createContainers(connid, connection.url, containers);
-
-        containers[connid].url.innerText = 'Origin: ' + connection.url;
-        containers[connid].configuration.innerText = 'Configuration: ' + JSON.stringify(connection.rtcConfiguration, null, ' ') + '\n';
-        containers[connid].configuration.innerText += 'Legacy (chrome) constraints: ' + JSON.stringify(connection.constraints, null, ' ');
-
-        document.getElementById('tables').appendChild(container);
-        const state = {};
-        connection.updateLog.forEach(event => {
-            containers[connid].updateLog.appendChild(processTraceEvent(event, state));
-            if (event.type === 'createOfferOnSuccess') {
-                state.lastCreatedOffer = event.value;
-            } else if (event.type === 'createAnswerOnSuccess') {
-                state.lastCreatedAnswer = event.value;
-            } else if (event.type === 'setLocalDescription') {
-                state.lastCreatedOffer = undefined;
-                state.lastCreatedAnswer = undefined;
-            } else if (event.type === 'setRemoteDescription') {
-                state.lastRemoteDescription = event.value;
-            } else if (event.type == 'signalingstatechange' && event.value === 'stable') {
-                state.lastRemoteDescription = undefined;
-            }
-        });
-        connection.updateLog.forEach(event => {
-            // update state displays
-            if (event.type === 'iceconnectionstatechange') {
-                containers[connid].iceConnectionState.textContent += ' => ' + event.value;
-            }
-            if (event.type === 'connectionstatechange') {
-                containers[connid].connectionState.textContent += ' => ' + event.value;
-            }
-        });
-        connection.updateLog.forEach(event => {
-            // FIXME: would be cool if a click on this would jump to the table row
-            if (event.type === 'signalingstatechange') {
-                containers[connid].signalingState.textContent += ' => ' + event.value;
-            }
-        });
         let legacy = false;
         for (let reportname in connection.stats) {
             if (reportname.startsWith('Conn-')) {
@@ -177,7 +142,6 @@ function importUpdatesAndStats(data) {
             document.getElementById('legacy').style.display = 'block';
         }
     }
-    // then, update the stats displays
     processConnections(Object.keys(data.PeerConnections), data);
 }
 
@@ -187,6 +151,48 @@ function processConnections(connectionIds, data) {
     window.setTimeout(processConnections, 0, connectionIds, data);
 
     const connection = data.PeerConnections[connid];
+    const container = containers[connid];
+
+    // Display the updateLog
+    containers[connid].url.innerText = 'Origin: ' + connection.url;
+    containers[connid].configuration.innerText = 'Configuration: ' + JSON.stringify(connection.rtcConfiguration, null, ' ') + '\n';
+    containers[connid].configuration.innerText += 'Legacy (chrome) constraints: ' + JSON.stringify(connection.constraints, null, ' ');
+
+    const state = {};
+    connection.updateLog.forEach(event => {
+        const row = processTraceEvent(event, state);
+        if (row) {
+            containers[connid].updateLog.appendChild(row);
+        }
+        if (event.type === 'createOfferOnSuccess') {
+            state.lastCreatedOffer = event.value;
+        } else if (event.type === 'createAnswerOnSuccess') {
+            state.lastCreatedAnswer = event.value;
+        } else if (event.type === 'setLocalDescription') {
+            state.lastCreatedOffer = undefined;
+            state.lastCreatedAnswer = undefined;
+        } else if (event.type === 'setRemoteDescription') {
+            state.lastRemoteDescription = event.value;
+        } else if (event.type == 'signalingstatechange' && event.value === 'stable') {
+            state.lastRemoteDescription = undefined;
+        }
+    });
+    connection.updateLog.forEach(event => {
+        // update state displays
+        if (event.type === 'iceconnectionstatechange') {
+            containers[connid].iceConnectionState.textContent += ' => ' + event.value;
+        }
+        if (event.type === 'connectionstatechange') {
+            containers[connid].connectionState.textContent += ' => ' + event.value;
+        }
+    });
+    connection.updateLog.forEach(event => {
+        // FIXME: would be cool if a click on this would jump to the table row
+        if (event.type === 'signalingstatechange') {
+            containers[connid].signalingState.textContent += ' => ' + event.value;
+        }
+    });
+
     const referenceTime = document.getElementById('useReferenceTime').checked && connection.updateLog.length
         ? new Date(connection.updateLog[0].time).getTime()
         : undefined;
