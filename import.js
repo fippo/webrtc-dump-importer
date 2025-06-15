@@ -25,6 +25,48 @@ document.getElementById('import').onchange = function(evt) {
     }
 }
 
+function parseStats(connection) {
+    const reportobj = {};
+    for (let reportname in connection.stats) {
+        if (reportname.startsWith('Conn-')) {
+            return {}; // legacy stats, no longer supported. Warning is shown above.
+        }
+    }
+    for (let reportname in connection.stats) {
+        // special casing of computed stats, in particular [a-b]
+        let stat;
+        let comp;
+        if (reportname.indexOf('[') !== -1) {
+            const t = reportname.split('[');
+            comp = '[' + t.pop();
+            stat = t.join('');
+            stat = stat.substr(0, stat.length - 1);
+        } else {
+            const t = reportname.split('-');
+            comp = t.pop();
+            stat = t.join('-');
+        }
+
+        if (!reportobj.hasOwnProperty(stat)) {
+            reportobj[stat] = [];
+            reportobj[stat].type = connection.stats[reportname].statsType;
+            reportobj[stat].startTime = new Date(connection.stats[reportname].startTime).getTime();
+            reportobj[stat].endTime = new Date(connection.stats[reportname].endTime).getTime();
+        }
+        let values = JSON.parse(connection.stats[reportname].values);
+        // Individual timestamps were added in crbug.com/1462567 in M117.
+        if (connection.stats[stat + '-timestamp']) {
+            const timestamps = JSON.parse(connection.stats[stat + '-timestamp'].values);
+            values = values.map((currentValue, index) => [timestamps[index], currentValue]);
+        } else {
+            // Fallback to the assumption that stats were gathered every second.
+            values = values.map((currentValue, index) => [reportobj[stat].startTime + 1000 * index, currentValue]);
+        }
+        reportobj[stat].push([comp, values]);
+    }
+    return reportobj;
+}
+
 function processTraceEvent(event, state) {
     const row = document.createElement('tr');
     let el = document.createElement('td');
@@ -137,7 +179,7 @@ function importUpdatesAndStats(data) {
             }
         }
         if (!legacy) {
-            createCandidateTable(connection.stats, containers[connid].candidates);
+            createCandidateTable(parseStats(connection), containers[connid].candidates);
         } else {
             document.getElementById('legacy').style.display = 'block';
         }
@@ -197,49 +239,11 @@ function processConnections(connectionIds, data) {
         ? new Date(connection.updateLog[0].time).getTime()
         : undefined;
     graphs[connid] = {};
-    const reportobj = {};
-    let values;
 
-    for (let reportname in connection.stats) {
-        if (reportname.startsWith('Conn-')) {
-            return; // legacy stats, no longer supported. Warning is shown above.
-        }
-    }
-    for (let reportname in connection.stats) {
-        // special casing of computed stats, in particular [a-b]
-        let stat;
-        let comp;
-        if (reportname.indexOf('[') !== -1) {
-            const t = reportname.split('[');
-            comp = '[' + t.pop();
-            stat = t.join('');
-            stat = stat.substr(0, stat.length - 1);
-        } else {
-            const t = reportname.split('-');
-            comp = t.pop();
-            stat = t.join('-');
-        }
-
-        if (!reportobj.hasOwnProperty(stat)) {
-            reportobj[stat] = [];
-        }
-        values = JSON.parse(connection.stats[reportname].values);
-        const startTime = new Date(connection.stats[reportname].startTime).getTime();
-        const endTime = new Date(connection.stats[reportname].endTime).getTime();
-        // Individual timestamps were added in crbug.com/1462567 in M117.
-        if (connection.stats[stat + '-timestamp']) {
-            const timestamps = JSON.parse(connection.stats[stat + '-timestamp'].values);
-            values = values.map((currentValue, index) => [timestamps[index], currentValue]);
-        } else {
-            // Fallback to the assumption that stats were gathered every second.
-            values = values.map((currentValue, index) => [startTime + 1000 * index, currentValue]);
-        }
-        reportobj[stat].push([comp, values, connection.stats[reportname].statsType]);
-    }
-
+    const reportobj = parseStats(connection);
     Object.keys(reportobj).forEach(reportname => {
         const reports = reportobj[reportname];
-        const statsType = reports[0][2];
+        const statsType = reports.type;
         // ignore useless graphs
         if (['local-candidate', 'remote-candidate', 'codec', 'stream', 'track'].includes(statsType)) return;
 

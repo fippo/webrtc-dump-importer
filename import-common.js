@@ -153,7 +153,7 @@ export function createContainers(connid, url, containers) {
     return container;
 }
 
-export function createCandidateTable(allStats, parentElement) {
+export function createCandidateTable(stats, parentElement) {
     const head = document.createElement('tr');
     [
         'Transport id',
@@ -175,43 +175,28 @@ export function createCandidateTable(allStats, parentElement) {
     });
     parentElement.appendChild(head);
 
-    const transports = {};
-    const pairs = {};
-    const candidates = {};
-    for (let reportname in allStats) {
-        let t = reportname.split('-');
-        const comp = t.pop();
-        t = t.join('-');
-        const statsType = allStats[reportname].statsType;
-        const stats = JSON.parse(allStats[reportname].values);
-        if (statsType === 'transport' || reportname.startsWith('RTCTransport')) {
-            if (!transports[t]) transports[t] = {};
-            switch(comp) {
-                case 'bytesSent':
-                case 'bytesReceived':
-                case 'dtlsState':
-                case 'selectedCandidatePairId':
-                    transports[t][comp] = stats[stats.length - 1];
-                default:
-                // console.log(reportname, comp, stats);
-            }
-        } else if (statsType === 'candidate-pair' || reportname.startsWith('RTCIceCandidatePair')) {
-            if (!pairs[t]) pairs[t] = {};
-            pairs[t][comp] = stats[stats.length - 1];
-        } else if (['local-candidate', 'remote-candidate'].includes(statsType) || reportname.startsWith('RTCIceCandidate')) {
-            if (!candidates[t]) candidates[t] = {};
-            candidates[t][comp] = stats[stats.length -  1]
-        }
+    const lastStats = {};
+    for (let id in stats) {
+        const report = stats[id];
+        const lastReport = {type: report.type};
+        Object.keys(report).forEach(property => {
+            if (!Array.isArray(report[property])) return;
+            const [key, values] = report[property];
+            lastReport[key] = values[values.length - 1][1];
+        });
+        lastStats[id] = lastReport;
     }
-    for (let t in transports) {
-        let row = document.createElement('tr');
+    for (let transportId in lastStats) {
+        if (lastStats[transportId].type !== 'transport') continue;
+        const transport = lastStats[transportId];
 
+        let row = document.createElement('tr');
         let el = document.createElement('td');
-        el.innerText = t;
+        el.innerText = transportId;
         row.appendChild(el);
 
         el = document.createElement('td');
-        el.innerText = transports[t].selectedCandidatePairId || '(none)';
+        el.innerText = transport.selectedCandidatePairId || '(none)';
         row.appendChild(el);
 
         for (let i = 2; i < head.childElementCount; i++) {
@@ -221,15 +206,16 @@ export function createCandidateTable(allStats, parentElement) {
 
         parentElement.appendChild(row);
 
-        for (let p in pairs) {
-            if (pairs[p].transportId !== t) continue;
-            const pair = pairs[p];
+        for (let pairId in lastStats) {
+            if (lastStats[pairId].type !== 'candidate-pair') continue;
+            const pair = lastStats[pairId];
+            if (pair.transportId !== transportId) continue;
             row = document.createElement('tr');
 
             row.appendChild(document.createElement('td'));
 
             el = document.createElement('td');
-            el.innerText = p;
+            el.innerText = pairId;
             row.appendChild(el);
 
             parentElement.appendChild(row);
@@ -247,15 +233,16 @@ export function createCandidateTable(allStats, parentElement) {
                 row.appendChild(el);
             }
 
-            for (let c in candidates) {
-                if (!(c === pair.localCandidateId || c === pair.remoteCandidateId)) continue;
-                const candidate = candidates[c];
+            for (let candidateId in lastStats) {
+                if (!['local-candidate', 'remote-candidate'].includes(lastStats[candidateId].type)) continue;
+                if (!(candidateId === pair.localCandidateId || candidateId === pair.remoteCandidateId)) continue;
+                const candidate = lastStats[candidateId];
                 row = document.createElement('tr');
 
                 row.appendChild(document.createElement('td'));
                 row.appendChild(document.createElement('td'));
                 el = document.createElement('td');
-                el.innerText = c;
+                el.innerText = candidateId;
                 row.appendChild(el);
 
                 el = document.createElement('td');
