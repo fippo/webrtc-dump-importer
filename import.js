@@ -25,7 +25,7 @@ document.getElementById('import').onchange = function(evt) {
     }
 }
 
-function parseStats(connection) {
+function createInternalsTimeSeries(connection) {
     const reportobj = {};
     for (let reportname in connection.stats) {
         if (reportname.startsWith('Conn-')) {
@@ -178,21 +178,7 @@ function importUpdatesAndStats(data) {
                 break;
             }
         }
-        if (!legacy) {
-            const stats = parseStats(connection);
-            const lastStats = {};
-            for (let id in stats) {
-                const report = stats[id];
-                const lastReport = {type: report.type};
-                Object.keys(report).forEach(property => {
-                    if (!Array.isArray(report[property])) return;
-                    const [key, values] = report[property];
-                    lastReport[key] = values[values.length - 1][1];
-                });
-                lastStats[id] = lastReport;
-            }
-            createCandidateTable(lastStats, containers[connid].candidates);
-        } else {
+        if (legacy) {
             document.getElementById('legacy').style.display = 'block';
         }
     }
@@ -252,7 +238,22 @@ function processConnections(connectionIds, data) {
         : undefined;
     graphs[connid] = {};
 
-    const reportobj = parseStats(connection);
+    const reportobj = createInternalsTimeSeries(connection);
+    if (reportobj) {
+        const lastStats = {};
+        for (let id in reportobj) {
+            const report = reportobj[id];
+            const lastReport = {type: report.type};
+            Object.keys(report).forEach(property => {
+                if (!Array.isArray(report[property])) return;
+                const [key, values] = report[property];
+                lastReport[key] = values[values.length - 1][1];
+            });
+            lastStats[id] = lastReport;
+        }
+        createCandidateTable(lastStats, containers[connid].candidates);
+    }
+
     Object.keys(reportobj).forEach(reportname => {
         const reports = reportobj[reportname];
         const statsType = reports.type;
