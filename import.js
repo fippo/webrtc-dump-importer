@@ -2,26 +2,266 @@ import {createContainers, processGetUserMedia, createCandidateTable, processDesc
 
 const SDPUtils = window.adapter.sdp;
 
-document.getElementById('import').onchange = function(evt) {
-    evt.target.disabled = true;
-    document.getElementById('useReferenceTime').disabled = true;
+export class WebRTCInternalsDumpImporter {
+    constructor() {
+        this.graphs = {};
+        this.containers = {};
+    }
 
-    const files = evt.target.files;
-    const reader = new FileReader();
-    reader.onload = ((file) => {
-        return (e) => {
-            let result = e.target.result;
-            if (typeof result === 'object') {
-                result = pako.inflate(result, {to: 'string'});
+    process(blob) {
+        this.data = JSON.parse(blob);
+        this.processGetUserMedia();
+        this.importUpdatesAndStats();
+    }
+
+    processGetUserMedia() {
+        // FIXME: also display GUM calls (can they be correlated to addStream?)
+        processGetUserMedia(this.data.getUserMedia, document.getElementById('tables'));
+    }
+
+    importUpdatesAndStats() {
+        if (this.data.UserAgentData && this.data.UserAgentData.length >= 2) {
+            document.getElementById('userAgent').innerText +=
+                this.data.UserAgentData[2].brand + ' ' +
+                this.data.UserAgentData[1].version + ' / ' ;
+        }
+        document.getElementById('userAgent').innerText += this.data.UserAgent;
+        document.getElementById('tables').style.display = 'block';
+
+        for (let connid in this.data.PeerConnections) {
+            const container = createContainers(connid, this.data.PeerConnections[connid].url, this.containers);
+            document.getElementById('tables').appendChild(container);
+        }
+        for (let connid in this.data.PeerConnections) {
+            const connection = this.data.PeerConnections[connid];
+            let legacy = false;
+            for (let reportname in connection.stats) {
+                if (reportname.startsWith('Conn-')) {
+                    legacy = true;
+                    break;
+                }
             }
-            const theLog = JSON.parse(result);
-            importUpdatesAndStats(theLog);
-        };
-    })(files[0]);
-    if (files[0].type === 'application/gzip') {
-        reader.readAsArrayBuffer(files[0]);
-    } else {
-        reader.readAsText(files[0]);
+            if (legacy) {
+                document.getElementById('legacy').style.display = 'block';
+            }
+        }
+        setTimeout(this.processConnections.bind(this), 0, Object.keys(this.data.PeerConnections));
+    }
+
+    processConnections(connectionIds) {
+        const connid = connectionIds.shift();
+        if (!connid) return;
+        setTimeout(this.processConnections.bind(this), 0, connectionIds)
+
+        const connection = this.data.PeerConnections[connid];
+        const container = this.containers[connid];
+
+        // Display the updateLog
+        this.containers[connid].url.innerText = 'Origin: ' + connection.url;
+        this.containers[connid].configuration.innerText = 'Configuration: ' + JSON.stringify(connection.rtcConfiguration, null, ' ') + '\n';
+        this.containers[connid].configuration.innerText += 'Legacy (chrome) constraints: ' + JSON.stringify(connection.constraints, null, ' ');
+
+        const state = {};
+        connection.updateLog.forEach(event => {
+            const row = this.processTraceEvent(event, state);
+            if (row) {
+                this.containers[connid].updateLog.appendChild(row);
+            }
+            if (event.type === 'createOfferOnSuccess') {
+                state.lastCreatedOffer = event.value;
+            } else if (event.type === 'createAnswerOnSuccess') {
+                state.lastCreatedAnswer = event.value;
+            } else if (event.type === 'setLocalDescription') {
+                state.lastCreatedOffer = undefined;
+                state.lastCreatedAnswer = undefined;
+            } else if (event.type === 'setRemoteDescription') {
+                state.lastRemoteDescription = event.value;
+            } else if (event.type == 'signalingstatechange' && event.value === 'stable') {
+                state.lastRemoteDescription = undefined;
+            }
+        });
+        connection.updateLog.forEach(event => {
+            // update state displays
+            if (event.type === 'iceconnectionstatechange') {
+                this.containers[connid].iceConnectionState.textContent += ' => ' + event.value;
+            }
+            if (event.type === 'connectionstatechange') {
+                this.containers[connid].connectionState.textContent += ' => ' + event.value;
+            }
+        });
+        connection.updateLog.forEach(event => {
+            // FIXME: would be cool if a click on this would jump to the table row
+            if (event.type === 'signalingstatechange') {
+                this.containers[connid].signalingState.textContent += ' => ' + event.value;
+            }
+        });
+
+        const referenceTime = document.getElementById('useReferenceTime').checked && connection.updateLog.length
+            ? new Date(connection.updateLog[0].time).getTime()
+            : undefined;
+        this.graphs[connid] = {};
+
+        const reportobj = createInternalsTimeSeries(connection);
+        if (reportobj) {
+            const lastStats = {};
+            for (let id in reportobj) {
+                const report = reportobj[id];
+                const lastReport = {type: report.type};
+                Object.keys(report).forEach(property => {
+                    if (!Array.isArray(report[property])) return;
+                    const [key, values] = report[property];
+                    lastReport[key] = values[values.length - 1][1];
+                });
+                lastStats[id] = lastReport;
+            }
+            createCandidateTable(lastStats, this.containers[connid].candidates);
+        }
+
+        Object.keys(reportobj).forEach(reportname => {
+            const reports = reportobj[reportname];
+            const statsType = reports.type;
+            // ignore useless graphs
+            if (['local-candidate', 'remote-candidate', 'codec', 'stream', 'track'].includes(statsType)) return;
+
+            const graphOptions = createGraphOptions(reportname, statsType, reports, referenceTime);
+            if (!graphOptions) {
+                return;
+            }
+
+            const container = document.createElement('details');
+            if (graphOptions.series.statsType) {
+                container.attributes['data-statsType'] = graphOptions.series.statsType;
+            }
+            this.containers[connid].graphs.appendChild(container);
+            // TODO: keep in sync with
+            // https://source.chromium.org/chromium/chromium/src/+/main:content/browser/webrtc/resources/stats_helper.js
+            const title = [
+                'type', 'kind',
+                'ssrc', 'rtxSsrc', 'fecSsrc',
+                'mid', 'rid',
+                'label',
+                '[codec]',
+                'encoderImplementation', 'decoderImplementation',
+                'trackIdentifier',
+                'id',
+            ].filter(key => graphOptions.labels[key] !== undefined)
+                .map(key => {
+                    return ({statsType: 'type', trackIdentifier: 'track'}[key] || key) + '=' + JSON.stringify(graphOptions.labels[key]);
+                }).join(', ');
+
+            const titleElement = document.createElement('summary');
+            titleElement.innerText = title;
+            container.appendChild(titleElement);
+
+            const d = document.createElement('div');
+            d.id = 'chart_' + Date.now();
+            d.classList.add('graph');
+            container.appendChild(d);
+
+            const graph = new Highcharts.Chart(d, graphOptions);
+            this.graphs[connid][reportname] = graph;
+
+            // expand the graph when opening
+            container.ontoggle = () => container.open && graph.reflow();
+
+            // draw checkbox to turn off everything
+            ((reportname, container, graph) => {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                container.appendChild(checkbox);
+                const label = document.createElement('label');
+                label.innerText = 'Turn on/off all data series'
+                container.appendChild(label);
+                checkbox.onchange = function() {
+                    graph.series.forEach(series => {
+                        series.setVisible(!checkbox.checked, false);
+                    });
+                    graph.redraw();
+                };
+            })(reportname, container, graph);
+        });
+    }
+
+    processTraceEvent(event, state) {
+        const row = document.createElement('tr');
+        let el = document.createElement('td');
+        el.setAttribute('nowrap', '');
+        el.innerText = event.time;
+        row.appendChild(el);
+
+        // recreate the HTML of webrtc-internals
+        const details = document.createElement('details');
+        el = document.createElement('summary');
+        el.innerText = event.type;
+        details.appendChild(el);
+
+        if (event.type === 'icecandidate' || event.type === 'addIceCandidate') {
+            if (event.value) {
+                const parts = event.value.split(', ')
+                    .map(part => part.split(': '));
+                const toShow = [];
+                parts.forEach(part => {
+                    if (['sdpMid', 'sdpMLineIndex'].includes(part[0])) {
+                        toShow.push(part.join(': '));
+                    } else if (part[0] === 'candidate') {
+                        const candidate = SDPUtils.parseCandidate(part[1].trim());
+                        if (candidate) {
+                            toShow.push('port:' + candidate.port);
+                            toShow.push('type: ' + candidate.type);
+                        }
+                    } else if (part[0] === 'relayProtocol') {
+                        toShow.push('relayProtocol: ' + part[1]);
+                    }
+                });
+                el.innerText += ' (' + toShow.join(', ') + ')';
+            }
+        }
+        if (event.value.indexOf(', sdp: ') != -1) {
+            const [type, sdp] = event.value.substr(6).split(', sdp: ');
+            let last_sections;
+            let remote_sections;
+            if (event.type === 'setLocalDescription') {
+                const [last_type, last_sdp] = (type === 'offer' ? state.lastCreatedOffer : state.lastCreatedAnswer)
+                    .substr(6).split(', sdp: ');
+                if (sdp != last_sdp) {
+                    last_sections = SDPUtils.splitSections(last_sdp);
+                }
+                if (state.remoteDescription) {
+                    const [remote_type, remote_sdp] = state.remoteDescription.substr(6).split(', sdp: ');
+                    remote_sections = SDPUtils.splitSections(remote_sdp);
+                }
+            }
+            processDescriptionEvent(el, event.type, {type, sdp}, last_sections, remote_sections);
+        } else {
+            el = document.createElement('pre');
+            el.innerText = event.value;
+        }
+        details.appendChild(el);
+        el = document.createElement('td');
+        if (event.value !== '') {
+            el.appendChild(details);
+        } else {
+            el.innerText = event.type;
+        }
+        row.appendChild(el);
+
+        // If the event type ends with 'Failure' hightlight it
+        if (event.type.endsWith('Failure')) {
+            row.style.backgroundColor = 'red';
+        }
+        // Likewise, highlight (ice)connectionstates.
+        if (['iceconnectionstatechange', 'connectionstatechange'].includes(event.type)) {
+            switch(event.value) {
+                case 'connected':
+                case 'completed':
+                    row.style.backgroundColor = 'green';
+                    break;
+                case 'failed':
+                    row.style.backgroundColor = 'red';
+                    break;
+            }
+        }
+        return row;
     }
 }
 
@@ -67,255 +307,4 @@ function createInternalsTimeSeries(connection) {
     return reportobj;
 }
 
-function processTraceEvent(event, state) {
-    const row = document.createElement('tr');
-    let el = document.createElement('td');
-    el.setAttribute('nowrap', '');
-    el.innerText = event.time;
-    row.appendChild(el);
-
-    // recreate the HTML of webrtc-internals
-    const details = document.createElement('details');
-    el = document.createElement('summary');
-    el.innerText = event.type;
-    details.appendChild(el);
-
-    if (event.type === 'icecandidate' || event.type === 'addIceCandidate') {
-        if (event.value) {
-            const parts = event.value.split(', ')
-                .map(part => part.split(': '));
-            const toShow = [];
-            parts.forEach(part => {
-                if (['sdpMid', 'sdpMLineIndex'].includes(part[0])) {
-                    toShow.push(part.join(': '));
-                } else if (part[0] === 'candidate') {
-                    const candidate = SDPUtils.parseCandidate(part[1].trim());
-                    if (candidate) {
-                        toShow.push('port:' + candidate.port);
-                        toShow.push('type: ' + candidate.type);
-                    }
-                } else if (part[0] === 'relayProtocol') {
-                    toShow.push('relayProtocol: ' + part[1]);
-                }
-            });
-            el.innerText += ' (' + toShow.join(', ') + ')';
-        }
-    }
-    if (event.value.indexOf(', sdp: ') != -1) {
-        const [type, sdp] = event.value.substr(6).split(', sdp: ');
-        let last_sections;
-        let remote_sections;
-        if (event.type === 'setLocalDescription') {
-            const [last_type, last_sdp] = (type === 'offer' ? state.lastCreatedOffer : state.lastCreatedAnswer)
-                .substr(6).split(', sdp: ');
-            if (sdp != last_sdp) {
-                last_sections = SDPUtils.splitSections(last_sdp);
-            }
-            if (state.remoteDescription) {
-                const [remote_type, remote_sdp] = state.remoteDescription.substr(6).split(', sdp: ');
-                remote_sections = SDPUtils.splitSections(remote_sdp);
-            }
-        }
-        processDescriptionEvent(el, event.type, {type, sdp}, last_sections, remote_sections);
-    } else {
-        el = document.createElement('pre');
-        el.innerText = event.value;
-    }
-    details.appendChild(el);
-    el = document.createElement('td');
-    if (event.value !== '') {
-        el.appendChild(details);
-    } else {
-        el.innerText = event.type;
-    }
-    row.appendChild(el);
-
-    // If the event type ends with 'Failure' hightlight it
-    if (event.type.endsWith('Failure')) {
-        row.style.backgroundColor = 'red';
-    }
-    // Likewise, highlight (ice)connectionstates.
-    if (['iceconnectionstatechange', 'connectionstatechange'].includes(event.type)) {
-        switch(event.value) {
-            case 'connected':
-            case 'completed':
-                row.style.backgroundColor = 'green';
-                break;
-            case 'failed':
-                row.style.backgroundColor = 'red';
-                break;
-        }
-    }
-    return row;
-}
-
-const graphs = {};
-const containers = {};
-window.graphs = graphs;
-window.containers = containers;
-function importUpdatesAndStats(data) {
-    if (data.UserAgentData && data.UserAgentData.length >= 2) {
-        document.getElementById('userAgent').innerText +=
-            data.UserAgentData[2].brand + ' ' +
-            data.UserAgentData[1].version + ' / ' ;
-    }
-    document.getElementById('userAgent').innerText += data.UserAgent;
-    document.getElementById('tables').style.display = 'block';
-
-    // FIXME: also display GUM calls (can they be correlated to addStream?)
-    processGetUserMedia(data.getUserMedia, document.getElementById('tables'));
-
-    for (let connid in data.PeerConnections) {
-        const container = createContainers(connid, data.PeerConnections[connid].url, containers);
-        document.getElementById('tables').appendChild(container);
-    }
-    for (let connid in data.PeerConnections) {
-        const connection = data.PeerConnections[connid];
-        let legacy = false;
-        for (let reportname in connection.stats) {
-            if (reportname.startsWith('Conn-')) {
-                legacy = true;
-                break;
-            }
-        }
-        if (legacy) {
-            document.getElementById('legacy').style.display = 'block';
-        }
-    }
-    processConnections(Object.keys(data.PeerConnections), data);
-}
-
-function processConnections(connectionIds, data) {
-    const connid = connectionIds.shift();
-    if (!connid) return;
-    window.setTimeout(processConnections, 0, connectionIds, data);
-
-    const connection = data.PeerConnections[connid];
-    const container = containers[connid];
-
-    // Display the updateLog
-    containers[connid].url.innerText = 'Origin: ' + connection.url;
-    containers[connid].configuration.innerText = 'Configuration: ' + JSON.stringify(connection.rtcConfiguration, null, ' ') + '\n';
-    containers[connid].configuration.innerText += 'Legacy (chrome) constraints: ' + JSON.stringify(connection.constraints, null, ' ');
-
-    const state = {};
-    connection.updateLog.forEach(event => {
-        const row = processTraceEvent(event, state);
-        if (row) {
-            containers[connid].updateLog.appendChild(row);
-        }
-        if (event.type === 'createOfferOnSuccess') {
-            state.lastCreatedOffer = event.value;
-        } else if (event.type === 'createAnswerOnSuccess') {
-            state.lastCreatedAnswer = event.value;
-        } else if (event.type === 'setLocalDescription') {
-            state.lastCreatedOffer = undefined;
-            state.lastCreatedAnswer = undefined;
-        } else if (event.type === 'setRemoteDescription') {
-            state.lastRemoteDescription = event.value;
-        } else if (event.type == 'signalingstatechange' && event.value === 'stable') {
-            state.lastRemoteDescription = undefined;
-        }
-    });
-    connection.updateLog.forEach(event => {
-        // update state displays
-        if (event.type === 'iceconnectionstatechange') {
-            containers[connid].iceConnectionState.textContent += ' => ' + event.value;
-        }
-        if (event.type === 'connectionstatechange') {
-            containers[connid].connectionState.textContent += ' => ' + event.value;
-        }
-    });
-    connection.updateLog.forEach(event => {
-        // FIXME: would be cool if a click on this would jump to the table row
-        if (event.type === 'signalingstatechange') {
-            containers[connid].signalingState.textContent += ' => ' + event.value;
-        }
-    });
-
-    const referenceTime = document.getElementById('useReferenceTime').checked && connection.updateLog.length
-        ? new Date(connection.updateLog[0].time).getTime()
-        : undefined;
-    graphs[connid] = {};
-
-    const reportobj = createInternalsTimeSeries(connection);
-    if (reportobj) {
-        const lastStats = {};
-        for (let id in reportobj) {
-            const report = reportobj[id];
-            const lastReport = {type: report.type};
-            Object.keys(report).forEach(property => {
-                if (!Array.isArray(report[property])) return;
-                const [key, values] = report[property];
-                lastReport[key] = values[values.length - 1][1];
-            });
-            lastStats[id] = lastReport;
-        }
-        createCandidateTable(lastStats, containers[connid].candidates);
-    }
-
-    Object.keys(reportobj).forEach(reportname => {
-        const reports = reportobj[reportname];
-        const statsType = reports.type;
-        // ignore useless graphs
-        if (['local-candidate', 'remote-candidate', 'codec', 'stream', 'track'].includes(statsType)) return;
-
-        const graphOptions = createGraphOptions(reportname, statsType, reports, referenceTime);
-        if (!graphOptions) {
-            return;
-        }
-
-        const container = document.createElement('details');
-        if (graphOptions.series.statsType) {
-            container.attributes['data-statsType'] = graphOptions.series.statsType;
-        }
-        containers[connid].graphs.appendChild(container);
-        // TODO: keep in sync with
-        // https://source.chromium.org/chromium/chromium/src/+/main:content/browser/webrtc/resources/stats_helper.js
-        const title = [
-            'type', 'kind',
-            'ssrc', 'rtxSsrc', 'fecSsrc',
-            'mid', 'rid',
-            'label',
-            '[codec]',
-            'encoderImplementation', 'decoderImplementation',
-            'trackIdentifier',
-            'id',
-        ].filter(key => graphOptions.labels[key] !== undefined)
-            .map(key => {
-                return ({statsType: 'type', trackIdentifier: 'track'}[key] || key) + '=' + JSON.stringify(graphOptions.labels[key]);
-            }).join(', ');
-
-        const titleElement = document.createElement('summary');
-        titleElement.innerText = title;
-        container.appendChild(titleElement);
-
-        const d = document.createElement('div');
-        d.id = 'chart_' + Date.now();
-        d.classList.add('graph');
-        container.appendChild(d);
-
-        const graph = new Highcharts.Chart(d, graphOptions);
-        graphs[connid][reportname] = graph;
-
-        // expand the graph when opening
-        container.ontoggle = () => container.open && graph.reflow();
-
-        // draw checkbox to turn off everything
-        ((reportname, container, graph) => {
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            container.appendChild(checkbox);
-            const label = document.createElement('label');
-            label.innerText = 'Turn on/off all data series'
-            container.appendChild(label);
-            checkbox.onchange = function() {
-                graph.series.forEach(series => {
-                    series.setVisible(!checkbox.checked, false);
-                });
-                graph.redraw();
-            };
-        })(reportname, container, graph);
-    });
-}
 
