@@ -26,14 +26,13 @@ export class WebRTCInternalsDumpImporter {
                 this.data.UserAgentData[1].version + ' / ' ;
         }
         document.getElementById('userAgent').innerText += this.data.UserAgent;
-        document.getElementById('tables').style.display = 'block';
 
-        for (let connid in this.data.PeerConnections) {
-            const container = createContainers(connid, this.data.PeerConnections[connid].url, this.containers);
+        for (let connectionId in this.data.PeerConnections) {
+            const container = createContainers(connectionId, this.data.PeerConnections[connectionId].url, this.containers);
             document.getElementById('tables').appendChild(container);
         }
-        for (let connid in this.data.PeerConnections) {
-            const connection = this.data.PeerConnections[connid];
+        for (let connectionId in this.data.PeerConnections) {
+            const connection = this.data.PeerConnections[connectionId];
             let legacy = false;
             for (let reportname in connection.stats) {
                 if (reportname.startsWith('Conn-')) {
@@ -49,57 +48,57 @@ export class WebRTCInternalsDumpImporter {
     }
 
     processConnections(connectionIds) {
-        const connid = connectionIds.shift();
-        if (!connid) return;
+        const connectionId = connectionIds.shift();
+        if (!connectionId) return;
         setTimeout(this.processConnections.bind(this), 0, connectionIds)
 
-        const connection = this.data.PeerConnections[connid];
-        const container = this.containers[connid];
+        const connection = this.data.PeerConnections[connectionId];
+        const container = this.containers[connectionId];
 
         // Display the updateLog
-        this.containers[connid].url.innerText = 'Origin: ' + connection.url;
-        this.containers[connid].configuration.innerText = 'Configuration: ' + JSON.stringify(connection.rtcConfiguration, null, ' ') + '\n';
-        this.containers[connid].configuration.innerText += 'Legacy (chrome) constraints: ' + JSON.stringify(connection.constraints, null, ' ');
+        this.containers[connectionId].url.innerText = 'Origin: ' + connection.url;
+        this.containers[connectionId].configuration.innerText = 'Configuration: ' + JSON.stringify(connection.rtcConfiguration, null, ' ') + '\n';
+        this.containers[connectionId].configuration.innerText += 'Legacy (chrome) constraints: ' + JSON.stringify(connection.constraints, null, ' ');
 
         const state = {};
-        connection.updateLog.forEach(event => {
-            const row = this.processTraceEvent(event, state);
+        connection.updateLog.forEach(traceEvent => {
+            const row = this.processTraceEvent(traceEvent, state);
             if (row) {
-                this.containers[connid].updateLog.appendChild(row);
+                this.containers[connectionId].updateLog.appendChild(row);
             }
-            if (event.type === 'createOfferOnSuccess') {
-                state.lastCreatedOffer = event.value;
-            } else if (event.type === 'createAnswerOnSuccess') {
-                state.lastCreatedAnswer = event.value;
-            } else if (event.type === 'setLocalDescription') {
+            if (traceEvent.type === 'createOfferOnSuccess') {
+                state.lastCreatedOffer = traceEvent.value;
+            } else if (traceEvent.type === 'createAnswerOnSuccess') {
+                state.lastCreatedAnswer = traceEvent.value;
+            } else if (traceEvent.type === 'setLocalDescription') {
                 state.lastCreatedOffer = undefined;
                 state.lastCreatedAnswer = undefined;
-            } else if (event.type === 'setRemoteDescription') {
-                state.lastRemoteDescription = event.value;
-            } else if (event.type == 'signalingstatechange' && event.value === 'stable') {
+            } else if (traceEvent.type === 'setRemoteDescription') {
+                state.lastRemoteDescription = traceEvent.value;
+            } else if (traceEvent.type == 'signalingstatechange' && traceEvent.value === 'stable') {
                 state.lastRemoteDescription = undefined;
             }
         });
-        connection.updateLog.forEach(event => {
+        connection.updateLog.forEach(traceEvent => {
             // update state displays
-            if (event.type === 'iceconnectionstatechange') {
-                this.containers[connid].iceConnectionState.textContent += ' => ' + event.value;
+            if (traceEvent.type === 'iceconnectionstatechange') {
+                this.containers[connectionId].iceConnectionState.textContent += ' => ' + traceEvent.value;
             }
-            if (event.type === 'connectionstatechange') {
-                this.containers[connid].connectionState.textContent += ' => ' + event.value;
+            if (traceEvent.type === 'connectionstatechange') {
+                this.containers[connectionId].connectionState.textContent += ' => ' + traceEvent.value;
             }
         });
-        connection.updateLog.forEach(event => {
+        connection.updateLog.forEach(traceEvent => {
             // FIXME: would be cool if a click on this would jump to the table row
-            if (event.type === 'signalingstatechange') {
-                this.containers[connid].signalingState.textContent += ' => ' + event.value;
+            if (traceEvent.type === 'signalingstatechange') {
+                this.containers[connectionId].signalingState.textContent += ' => ' + traceEvent.value;
             }
         });
 
         const referenceTime = document.getElementById('useReferenceTime').checked && connection.updateLog.length
             ? new Date(connection.updateLog[0].time).getTime()
             : undefined;
-        this.graphs[connid] = {};
+        this.graphs[connectionId] = {};
 
         const reportobj = createInternalsTimeSeries(connection);
         if (reportobj) {
@@ -114,7 +113,7 @@ export class WebRTCInternalsDumpImporter {
                 });
                 lastStats[id] = lastReport;
             }
-            createCandidateTable(lastStats, this.containers[connid].candidates);
+            createCandidateTable(lastStats, this.containers[connectionId].candidates);
         }
 
         Object.keys(reportobj).forEach(reportname => {
@@ -132,7 +131,7 @@ export class WebRTCInternalsDumpImporter {
             if (graphOptions.series.statsType) {
                 container.attributes['data-statsType'] = graphOptions.series.statsType;
             }
-            this.containers[connid].graphs.appendChild(container);
+            this.containers[connectionId].graphs.appendChild(container);
             // TODO: keep in sync with
             // https://source.chromium.org/chromium/chromium/src/+/main:content/browser/webrtc/resources/stats_helper.js
             const title = [
@@ -159,7 +158,7 @@ export class WebRTCInternalsDumpImporter {
             container.appendChild(d);
 
             const graph = new Highcharts.Chart(d, graphOptions);
-            this.graphs[connid][reportname] = graph;
+            this.graphs[connectionId][reportname] = graph;
 
             // expand the graph when opening
             container.ontoggle = () => container.open && graph.reflow();
@@ -182,22 +181,22 @@ export class WebRTCInternalsDumpImporter {
         });
     }
 
-    processTraceEvent(event, state) {
+    processTraceEvent(traceEvent, state) {
         const row = document.createElement('tr');
         let el = document.createElement('td');
         el.setAttribute('nowrap', '');
-        el.innerText = event.time;
+        el.innerText = traceEvent.time;
         row.appendChild(el);
 
         // recreate the HTML of webrtc-internals
         const details = document.createElement('details');
         el = document.createElement('summary');
-        el.innerText = event.type;
+        el.innerText = traceEvent.type;
         details.appendChild(el);
 
-        if (event.type === 'icecandidate' || event.type === 'addIceCandidate') {
-            if (event.value) {
-                const parts = event.value.split(', ')
+        if (['іcecandidate', 'addIceCandidate'].includes(traceEvent.type)) {
+            if (traceEvent.value) {
+                const parts = traceEvent.value.split(', ')
                     .map(part => part.split(': '));
                 const toShow = [];
                 parts.forEach(part => {
@@ -216,11 +215,11 @@ export class WebRTCInternalsDumpImporter {
                 el.innerText += ' (' + toShow.join(', ') + ')';
             }
         }
-        if (event.value.indexOf(', sdp: ') != -1) {
-            const [type, sdp] = event.value.substr(6).split(', sdp: ');
+        if (traceEvent.value.indexOf(', sdp: ') != -1) {
+            const [type, sdp] = traceEvent.value.substr(6).split(', sdp: ');
             let last_sections;
             let remote_sections;
-            if (event.type === 'setLocalDescription') {
+            if (traceEvent.type === 'setLocalDescription') {
                 const [last_type, last_sdp] = (type === 'offer' ? state.lastCreatedOffer : state.lastCreatedAnswer)
                     .substr(6).split(', sdp: ');
                 if (sdp != last_sdp) {
@@ -231,27 +230,27 @@ export class WebRTCInternalsDumpImporter {
                     remote_sections = SDPUtils.splitSections(remote_sdp);
                 }
             }
-            processDescriptionEvent(el, event.type, {type, sdp}, last_sections, remote_sections);
+            processDescriptionEvent(el, traceEvent.type, {type, sdp}, last_sections, remote_sections);
         } else {
             el = document.createElement('pre');
-            el.innerText = event.value;
+            el.innerText = traceEvent.value;
         }
         details.appendChild(el);
         el = document.createElement('td');
-        if (event.value !== '') {
+        if (traceEvent.value !== '') {
             el.appendChild(details);
         } else {
-            el.innerText = event.type;
+            el.innerText = traceEvent.type;
         }
         row.appendChild(el);
 
-        // If the event type ends with 'Failure' hightlight it
-        if (event.type.endsWith('Failure')) {
+        // If the traceEvent type ends with 'Failure' hightlight it
+        if (traceEvent.type.endsWith('Failure')) {
             row.style.backgroundColor = 'red';
         }
         // Likewise, highlight (ice)connectionstates.
-        if (['iceconnectionstatechange', 'connectionstatechange'].includes(event.type)) {
-            switch(event.value) {
+        if (['iceconnectionstatechange', 'connectionstatechange'].includes(traceEvent.type)) {
+            switch(traceEvent.value) {
                 case 'connected':
                 case 'completed':
                     row.style.backgroundColor = 'green';
