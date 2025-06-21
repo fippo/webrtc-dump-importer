@@ -225,6 +225,7 @@ export class WebRTCInternalsDumpImporter {
                     .substr(6).split(', sdp: ');
                 if (sdp != last_sdp) {
                     last_sections = SDPUtils.splitSections(last_sdp);
+                    details.open = true;
                 }
                 if (state.remoteDescription) {
                     const [remote_type, remote_sdp] = state.remoteDescription.substr(6).split(', sdp: ');

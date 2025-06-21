@@ -23,7 +23,6 @@ export function processDescriptionEvent(container, eventType, description, last_
     container.innerText += ' (type: "' + type + '", ' + sections.length + ' sections)';
     if (last_sections) {
         container.innerText += ' munged';
-        container.style.backgroundColor = '#FBCEB1';
     }
     const copyBtn = document.createElement('button');
     copyBtn.innerText = '\uD83D\uDCCB'; // clipboard
@@ -64,9 +63,12 @@ export function processDescriptionEvent(container, eventType, description, last_
                 // Ignore triggering from simple reordering which is ok-ish.
                 const last_lines = SDPUtils.splitLines(last_sections[index]).sort();
                 const current_lines = SDPUtils.splitLines(sections[index]).sort();
-                if (last_lines.findIndex((line, index) => line !== current_lines[index]) !== -1) {
+                const mungedIndex = last_lines.findIndex((line, index) => line !== current_lines[index]);
+                if (mungedIndex !== -1) {
                     summary.innerText += ' munged';
                     summary.style.backgroundColor = '#FBCEB1';
+                    summary.title = 'First munged line: ' + current_lines[mungedIndex];
+                    details.style.backgroundColor = '#FBCEB1';
                     details.open = true;
                 } else {
                     summary.innerText += ' reordered';
