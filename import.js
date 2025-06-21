@@ -230,7 +230,7 @@ export class WebRTCInternalsDumpImporter {
                     remote_sections = SDPUtils.splitSections(remote_sdp);
                 }
             }
-            processDescriptionEvent(el, traceEvent.type, {type, sdp}, last_sections, remote_sections);
+            processDescriptionEvent(details, traceEvent.type, {type, sdp}, last_sections, remote_sections);
         } else {
             el = document.createElement('pre');
             el.innerText = traceEvent.value;
