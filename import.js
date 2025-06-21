@@ -42,6 +42,7 @@ export class WebRTCInternalsDumpImporter {
             }
             if (legacy) {
                 document.getElementById('legacy').style.display = 'block';
+                break;
             }
         }
         setTimeout(this.processConnections.bind(this), 0, Object.keys(this.data.PeerConnections));
@@ -265,7 +266,7 @@ export class WebRTCInternalsDumpImporter {
 }
 
 function createInternalsTimeSeries(connection) {
-    const reportobj = {};
+    const series = {};
     for (let reportname in connection.stats) {
         if (reportname.startsWith('Conn-')) {
             return {}; // legacy stats, no longer supported. Warning is shown above.
@@ -273,37 +274,38 @@ function createInternalsTimeSeries(connection) {
     }
     for (let reportname in connection.stats) {
         // special casing of computed stats, in particular [a-b]
-        let stat;
-        let comp;
+        let statsId;
+        let statsProperty;
         if (reportname.indexOf('[') !== -1) {
             const t = reportname.split('[');
-            comp = '[' + t.pop();
-            stat = t.join('');
-            stat = stat.substr(0, stat.length - 1);
+            statsProperty = '[' + t.pop();
+            statsId = t.join('');
+            statsId = statsId.substr(0, statsId.length - 1);
         } else {
             const t = reportname.split('-');
-            comp = t.pop();
-            stat = t.join('-');
+            statsProperty = t.pop();
+            statsId = t.join('-');
         }
+        const stats = connection.stats[reportname];
 
-        if (!reportobj.hasOwnProperty(stat)) {
-            reportobj[stat] = [];
-            reportobj[stat].type = connection.stats[reportname].statsType;
-            reportobj[stat].startTime = new Date(connection.stats[reportname].startTime).getTime();
-            reportobj[stat].endTime = new Date(connection.stats[reportname].endTime).getTime();
+        if (!series.hasOwnProperty(statsId)) {
+            series[statsId] = [];
+            series[statsId].type = stats.statsType;
+            series[statsId].startTime = new Date(stats.startTime).getTime();
+            series[statsId].endTime = new Date(stats.endTime).getTime();
         }
-        let values = JSON.parse(connection.stats[reportname].values);
+        let values = JSON.parse(stats.values);
         // Individual timestamps were added in crbug.com/1462567 in M117.
-        if (connection.stats[stat + '-timestamp']) {
-            const timestamps = JSON.parse(connection.stats[stat + '-timestamp'].values);
+        if (connection.stats[statsId + '-timestamp']) {
+            const timestamps = JSON.parse(connection.stats[statsId + '-timestamp'].values);
             values = values.map((currentValue, index) => [timestamps[index], currentValue]);
         } else {
             // Fallback to the assumption that stats were gathered every second.
-            values = values.map((currentValue, index) => [reportobj[stat].startTime + 1000 * index, currentValue]);
+            values = values.map((currentValue, index) => [series[statsId].startTime + 1000 * index, currentValue]);
         }
-        reportobj[stat].push([comp, values]);
+        series[statsId].push([statsProperty, values]);
     }
-    return reportobj;
+    return series;
 }
 
 
