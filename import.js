@@ -221,11 +221,14 @@ export class WebRTCInternalsDumpImporter {
             let last_sections;
             let remote_sections;
             if (traceEvent.type === 'setLocalDescription') {
-                const [last_type, last_sdp] = (type === 'offer' ? state.lastCreatedOffer : state.lastCreatedAnswer)
-                    .substr(6).split(', sdp: ');
-                if (sdp != last_sdp) {
-                    last_sections = SDPUtils.splitSections(last_sdp);
-                    details.open = true;
+                const lastCreated = type === 'offer' ? state.lastCreatedOffer : state.lastCreatedAnswer;
+                if ((type === 'offer' && state.lastCreatedOffer) || (type === 'answer' && state.lastCreatedAnswer)) {
+                    const [last_type, last_sdp] = (type === 'offer' ? state.lastCreatedOffer : state.lastCreatedAnswer)
+                        .substr(6).split(', sdp: ');
+                    if (sdp != last_sdp) {
+                        last_sections = SDPUtils.splitSections(last_sdp);
+                        details.open = true;
+                    }
                 }
                 if (state.remoteDescription) {
                     const [remote_type, remote_sdp] = state.remoteDescription.substr(6).split(', sdp: ');
