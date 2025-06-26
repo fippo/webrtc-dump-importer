@@ -311,21 +311,21 @@ export function processGetUserMedia(data, parentElement) {
     });
 
     parentElement.appendChild(container);
-    data.forEach(event => {
-        const id = ['gum-row', event.pid, event.rid, event.request_id].join('-');
-        if (!event.origin) {
+    data.forEach(gumEvent => {
+        const id = ['gum-row', gumEvent.pid, gumEvent.rid, gumEvent.request_id].join('-');
+        if (!gumEvent.origin) {
             // Not a getUserMedia call but a response, update the row with the request.
             const existingRow = document.getElementById(id);
-            if (event.error) {
-                existingRow.childNodes[8].innerText = event.error;
-                existingRow.childNodes[9].innerText = event.error_message;
+            if (gumEvent.error) {
+                existingRow.childNodes[8].innerText = gumEvent.error;
+                existingRow.childNodes[9].innerText = gumEvent.error_message;
                 return;
             }
-            if (event.audio_track_info) {
-                existingRow.childNodes[6].innerText = event.audio_track_info;
+            if (gumEvent.audio_track_info) {
+                existingRow.childNodes[6].innerText = gumEvent.audio_track_info;
             }
-            if (event.video_track_info) {
-                existingRow.childNodes[7].innerText = event.video_track_info;
+            if (gumEvent.video_track_info) {
+                existingRow.childNodes[7].innerText = gumEvent.video_track_info;
             }
             return;
         }
@@ -336,9 +336,9 @@ export function processGetUserMedia(data, parentElement) {
             const cell = document.createElement('td');
             const el = document.createElement('pre');
             if (['audio', 'video'].includes(attribute)) {
-                el.innerText = event.hasOwnProperty(attribute) ? (event[attribute] || 'true') : 'not set';
+                el.innerText = gumEvent.hasOwnProperty(attribute) ? (gumEvent[attribute] || 'true') : 'not set';
             } else {
-                el.innerText = event.hasOwnProperty(attribute) ? event[attribute] : '';
+                el.innerText = gumEvent.hasOwnProperty(attribute) ? gumEvent[attribute] : '';
             }
             cell.appendChild(el);
             row.appendChild(cell);
