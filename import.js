@@ -3,33 +3,45 @@ import {createContainers, processGetUserMedia, createCandidateTable, processDesc
 const SDPUtils = window.adapter.sdp;
 
 export class WebRTCInternalsDumpImporter {
-    constructor() {
+    constructor(container) {
         this.graphs = {};
+        this.container = container;
         this.containers = {};
     }
 
     process(blob) {
         this.data = JSON.parse(blob);
+        this.processUserAgent();
         this.processGetUserMedia();
         this.importUpdatesAndStats();
     }
 
-    processGetUserMedia() {
-        // FIXME: also display GUM calls (can they be correlated to addStream?)
-        processGetUserMedia(this.data.getUserMedia, document.getElementById('tables'));
-    }
+    processUserAgent() {
+        const container = document.createElement('div');
+        const label = document.createElement('span');
+        label.innerText = 'User Agent:';
+        container.appendChild(label);
 
-    importUpdatesAndStats() {
+        const ua = document.createElement('span');
         if (this.data.UserAgentData && this.data.UserAgentData.length >= 2) {
-            document.getElementById('userAgent').innerText +=
+            ua.innerText =
                 this.data.UserAgentData[2].brand + ' ' +
                 this.data.UserAgentData[1].version + ' / ' ;
         }
-        document.getElementById('userAgent').innerText += this.data.UserAgent;
+        ua.innerText += this.data.UserAgent;
+        container.appendChild(ua);
+        this.container.appendChild(container);
+    }
 
+    processGetUserMedia() {
+        // FIXME: also display GUM calls (can they be correlated to addStream?)
+        processGetUserMedia(this.data.getUserMedia, this.container);
+    }
+
+    importUpdatesAndStats() {
         for (let connectionId in this.data.PeerConnections) {
             const container = createContainers(connectionId, this.data.PeerConnections[connectionId].url, this.containers);
-            document.getElementById('tables').appendChild(container);
+            this.container.appendChild(container);
         }
         for (let connectionId in this.data.PeerConnections) {
             const connection = this.data.PeerConnections[connectionId];

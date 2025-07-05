@@ -1,5 +1,6 @@
 import {WebRTCInternalsDumpImporter} from './import.js';
 
+const container = document.getElementById('tables');
 document.getElementById('import').onchange = function(evt) {
     evt.target.disabled = 'disabled';
     const files = evt.target.files;
@@ -11,7 +12,7 @@ document.getElementById('import').onchange = function(evt) {
             if (typeof result === 'object') {
                 result = pako.inflate(result, {to: 'string'});
             }
-            window.importer = new WebRTCInternalsDumpImporter();
+            window.importer = new WebRTCInternalsDumpImporter(container);
             importer.process(result);
         };
     })(file);
