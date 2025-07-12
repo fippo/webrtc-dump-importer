@@ -92,16 +92,14 @@ export class WebRTCInternalsDumpImporter {
                 state.lastRemoteDescription = undefined;
             }
         });
+        // update state displays
         connection.updateLog.forEach(traceEvent => {
-            // update state displays
             if (traceEvent.type === 'iceconnectionstatechange') {
                 this.containers[connectionId].iceConnectionState.textContent += ' => ' + traceEvent.value;
             }
             if (traceEvent.type === 'connectionstatechange') {
                 this.containers[connectionId].connectionState.textContent += ' => ' + traceEvent.value;
             }
-        });
-        connection.updateLog.forEach(traceEvent => {
             // FIXME: would be cool if a click on this would jump to the table row
             if (traceEvent.type === 'signalingstatechange') {
                 this.containers[connectionId].signalingState.textContent += ' => ' + traceEvent.value;
@@ -150,7 +148,7 @@ export class WebRTCInternalsDumpImporter {
             const title = [
                 'type', 'kind',
                 'ssrc', 'rtxSsrc', 'fecSsrc',
-                'mid', 'rid',
+                'mid', 'rid', 'encodingIndex',
                 'label',
                 '[codec]',
                 'encoderImplementation', 'decoderImplementation',

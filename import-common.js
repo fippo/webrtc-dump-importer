@@ -1,5 +1,9 @@
 const SDPUtils = window.adapter.sdp;
 
+import {
+    isBoring,
+} from './timeseries.js';
+
 function filterStatsGraphs(event, container) {
     const filter =  event.target.value;
     const filters = filter.split(',');
@@ -21,9 +25,7 @@ export function processDescriptionEvent(container, eventType, description, last_
     const {type, sdp} = description;
     const sections = SDPUtils.splitSections(sdp);
     container.innerText += ' (type: "' + type + '", ' + sections.length + ' sections)';
-    if (last_sections) {
-        container.innerText += ' munged';
-    }
+
     const copyBtn = document.createElement('button');
     copyBtn.innerText = '\uD83D\uDCCB'; // clipboard
     copyBtn.className = 'copyBtn';
@@ -32,6 +34,7 @@ export function processDescriptionEvent(container, eventType, description, last_
     };
     container.appendChild(copyBtn);
 
+    let munged = false;
     const el = document.createElement('pre');
     sections.forEach((section, index) => {
         const lines = SDPUtils.splitLines(section);
@@ -59,25 +62,30 @@ export function processDescriptionEvent(container, eventType, description, last_
                 }
                 details.open = false;
             }
-            if (last_sections && last_sections[index] !== sections[index]) {
-                // Ignore triggering from simple reordering which is ok-ish.
-                const last_lines = SDPUtils.splitLines(last_sections[index]).sort();
-                const current_lines = SDPUtils.splitLines(sections[index]).sort();
-                const mungedIndex = last_lines.findIndex((line, index) => line !== current_lines[index]);
-                if (mungedIndex !== -1) {
-                    summary.innerText += ' munged';
-                    summary.style.backgroundColor = '#FBCEB1';
-                    summary.title = 'First munged line: ' + current_lines[mungedIndex];
-                    details.style.backgroundColor = '#FBCEB1';
-                    details.open = true;
-                } else {
-                    summary.innerText += ' reordered';
-                }
+        }
+        if (last_sections && last_sections[index] !== sections[index]) {
+            // Ignore triggering from simple reordering which is ok-ish.
+            const last_lines = SDPUtils.splitLines(last_sections[index]).sort();
+            const current_lines = SDPUtils.splitLines(sections[index]).sort();
+            const mungedIndex = last_lines.findIndex((line, index) => line !== current_lines[index]);
+            if (mungedIndex !== -1) {
+                summary.innerText += ' munged';
+                summary.style.backgroundColor = '#FBCEB1';
+                summary.title = 'First munged line: ' + current_lines[mungedIndex];
+                details.style.backgroundColor = '#FBCEB1';
+                details.open = true;
+            } else {
+                summary.innerText += ' reordered';
+                summary.style.backgroundColor = '#FBCEB1';
             }
+            munged = true;
         }
         details.appendChild(summary);
         el.appendChild(details);
     });
+    if (munged) {
+        container.innerText += ' munged';
+    }
     container.appendChild(el);
 }
 
@@ -109,19 +117,26 @@ export function createContainers(connid, url, containers) {
     connectionState.textContent = 'Connection state:';
     container.appendChild(connectionState);
 
+    const candidateContainer = document.createElement('details');
+    container.style.margin = '10px';
+    const candidateSummary = document.createElement('summary');
+    candidateSummary.innerText = 'ICE candidate grid';
+    candidateContainer.appendChild(candidateSummary);
     const candidates = document.createElement('table');
     candidates.className = 'candidatepairtable';
-    container.appendChild(candidates);
+    candidateContainer.appendChild(candidates);
+    container.appendChild(candidateContainer);
 
     const updateLog = document.createElement('table');
     const head = document.createElement('tr');
     updateLog.appendChild(head);
 
     el = document.createElement('th');
-    el.innerText = 'connection ' + connid;
+    el.innerText = 'Time';
     head.appendChild(el);
 
     el = document.createElement('th');
+    el.innerText = 'Event';
     head.appendChild(el);
 
     container.appendChild(updateLog);
@@ -138,7 +153,7 @@ export function createContainers(connid, url, containers) {
     input.oninput = (e) => filterStatsGraphs(e, graphs);
     graphHeader.appendChild(input);
 
-    container.appendChild(graphHeader);
+    graphs.appendChild(graphHeader);
     container.appendChild(graphs);
 
     containers[connid] = {
@@ -312,7 +327,7 @@ export function processGetUserMedia(data, parentElement) {
 
     parentElement.appendChild(container);
     data.forEach(gumEvent => {
-        const id = ['gum-row', gumEvent.pid, gumEvent.rid, gumEvent.request_id].join('-');
+        const id = [container.id, 'gum-row', gumEvent.pid, gumEvent.rid, gumEvent.request_id].join('-');
         if (!gumEvent.origin) {
             // Not a getUserMedia call but a response, update the row with the request.
             const existingRow = document.getElementById(id);
@@ -357,9 +372,9 @@ export function createGraphOptions(statsId, statsType, reports, referenceTime) {
     };
     reports.sort().forEach(report => {
         const [name, data, statsType] = report;
+        // set up a x-axis plotbands:
+        // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
         if (name === 'active' && statsType === 'outbound-rtp') {
-            // set up a x-axis plotbands:
-            // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
             data.filter((el, index, values) => {
                 return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
             }).forEach((item, index, values) => {
@@ -378,8 +393,6 @@ export function createGraphOptions(statsId, statsType, reports, referenceTime) {
             return;
         }
         if (name === 'qualityLimitationReason' && statsType === 'outbound-rtp') {
-            // set up a x-axis plotbands:
-            // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
             data.filter((el, index, values) => {
                 return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
             }).forEach((item, index, values) => {
@@ -398,8 +411,6 @@ export function createGraphOptions(statsId, statsType, reports, referenceTime) {
             return;
         }
         if (['encoderImplementation', 'decoderImplementation'].includes(name) && ['inbound-rtp', 'outbound-rtp'].includes(statsType)) {
-            // set up a x-axis plotbands:
-            // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
             data.filter((el, index, values) => {
                 return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
             }).forEach((item, index, values) => {
@@ -416,8 +427,6 @@ export function createGraphOptions(statsId, statsType, reports, referenceTime) {
             return;
         }
         if (name === 'scalabilityMode' && statsType === 'outbound-rtp') {
-            // set up a x-axis plotbands:
-            // https://www.highcharts.com/docs/chart-concepts/plot-bands-and-plot-lines
             data.filter((el, index, values) => {
                 return !(index > 0 && index < values.length - 1 && values[index - 1][1] == el[1]);
             }).forEach((item, index, values) => {
@@ -440,7 +449,7 @@ export function createGraphOptions(statsId, statsType, reports, referenceTime) {
         }
 
         const statsForLabels = [
-            'kind', 'mid', 'rid',
+            'kind', 'mid', 'rid', 'encodingIndex',
             'ssrc', 'rtxSsrc', 'fecSsrc',
             'encoderImplementation', 'decoderImplementation', 'scalabilityMode',
             'scalabilityMode', '[codec]',
@@ -458,24 +467,12 @@ export function createGraphOptions(statsId, statsType, reports, referenceTime) {
             'streamIdentifier', 'trackIdentifier',
             'priority', 'port',
             'ssrc', 'rtxSsrc', 'fecSsrc',
-            'mid', 'rid',
+            'mid', 'rid', 'encodingIndex',
         ];
         if (ignoredSeries.includes(name)) {
             return;
         }
 
-        const hiddenSeries = [
-            'bytesReceived', 'bytesSent',
-            'headerBytesReceived', 'headerBytesSent',
-            'packetsReceived', 'packetsSent',
-            'qpSum',
-            'framesEncoded', 'framesDecoded', 'totalEncodeTime',
-            'lastPacketReceivedTimestamp', 'lastPacketSentTimestamp',
-            'remoteTimestamp', 'estimatedPlayoutTimestamp',
-            'audioInputLevel', 'audioOutputLevel',
-            'totalSamplesDuration', 'totalSamplesReceived',
-            'jitterBufferEmittedCount',
-        ];
         const secondYAxis = [
             // candidate-pair
             'consentRequestsSent', 'requestsSent', 'requestsReceived', 'responsesSent', 'responsesReceived',
@@ -487,13 +484,16 @@ export function createGraphOptions(statsId, statsType, reports, referenceTime) {
             '[framesSent/s]', '[framesEncoded/s]', '[keyFramesEncoded/s]', 'frameWidth', 'frameHeight',
         ];
 
+        // Hide "boring" series. Graphs with all boring series should be deprioritized too.
+        const hidden = isBoring(name, data);
         series.push({
             name,
             data,
-            visible: !hiddenSeries.includes(name),
+            visible: !hidden,
             yAxis: secondYAxis.includes(name) ? 1 : 0,
         });
     });
+    labels['visibleSeries'] = series.filter(s => s.visible).length + '/' + series.length;
 
     // Optionally start all graphs at the same point in time.
     if (referenceTime) {
