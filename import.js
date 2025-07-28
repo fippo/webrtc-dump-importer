@@ -2,8 +2,9 @@ import {createContainers, processGetUserMedia, createCandidateTable, processDesc
 
 const SDPUtils = window.adapter.sdp;
 
-export class WebRTCInternalsDumpImporter {
+export class WebRTCInternalsDumpImporter extends EventTarget {
     constructor(container) {
+        super();
         this.graphs = {};
         this.container = container;
         this.containers = {};
@@ -31,11 +32,15 @@ export class WebRTCInternalsDumpImporter {
         ua.innerText += this.data.UserAgent;
         container.appendChild(ua);
         this.container.appendChild(container);
+
+        this.dispatchEvent(new Event('processed-useragent'));
     }
 
     processGetUserMedia() {
         // FIXME: also display GUM calls (can they be correlated to addStream?)
         processGetUserMedia(this.data.getUserMedia, this.container);
+
+        this.dispatchEvent(new Event('processed-getusermedia'));
     }
 
     importUpdatesAndStats() {
@@ -63,19 +68,24 @@ export class WebRTCInternalsDumpImporter {
     processConnections(connectionIds) {
         const connectionId = connectionIds.shift();
         if (!connectionId) return;
+        setTimeout(this.processStats.bind(this), 0, connectionId);
         setTimeout(this.processConnections.bind(this), 0, connectionIds)
 
-        const connection = this.data.PeerConnections[connectionId];
+        const peerConnectionTrace = this.data.PeerConnections[connectionId];
         const container = this.containers[connectionId];
 
         // Display the updateLog
-        this.containers[connectionId].url.innerText = 'Origin: ' + connection.url;
-        this.containers[connectionId].configuration.innerText = 'Configuration: ' + JSON.stringify(connection.rtcConfiguration, null, ' ') + '\n';
-        this.containers[connectionId].configuration.innerText += 'Legacy (chrome) constraints: ' + JSON.stringify(connection.constraints, null, ' ');
+        this.containers[connectionId].url.innerText = 'Origin: ' + peerConnectionTrace.url;
+        this.containers[connectionId].configuration.innerText = 'Configuration: ' + JSON.stringify(peerConnectionTrace.rtcConfiguration, null, ' ') + '\n';
+        if (peerConnectionTrace.constraints) {
+            this.containers[connectionId].configuration.innerText += 'Legacy (chrome) constraints: ' + JSON.stringify(peerConnectionTrace.constraints, null, ' ');
+        }
+
+        this._showStateChanges(connectionId);
 
         const state = {};
-        connection.updateLog.forEach(traceEvent => {
-            const row = this.processTraceEvent(traceEvent, state);
+        for (const traceEvent of peerConnectionTrace.updateLog) {
+            const row = this._processTraceEvent(traceEvent, state);
             if (row) {
                 this.containers[connectionId].updateLog.appendChild(row);
             }
@@ -91,27 +101,21 @@ export class WebRTCInternalsDumpImporter {
             } else if (traceEvent.type == 'signalingstatechange' && traceEvent.value === 'stable') {
                 state.lastRemoteDescription = undefined;
             }
-        });
-        // update state displays
-        connection.updateLog.forEach(traceEvent => {
-            if (traceEvent.type === 'iceconnectionstatechange') {
-                this.containers[connectionId].iceConnectionState.textContent += ' => ' + traceEvent.value;
-            }
-            if (traceEvent.type === 'connectionstatechange') {
-                this.containers[connectionId].connectionState.textContent += ' => ' + traceEvent.value;
-            }
-            // FIXME: would be cool if a click on this would jump to the table row
-            if (traceEvent.type === 'signalingstatechange') {
-                this.containers[connectionId].signalingState.textContent += ' => ' + traceEvent.value;
-            }
-        });
+        }
 
-        const referenceTime = document.getElementById('useReferenceTime').checked && connection.updateLog.length
-            ? new Date(connection.updateLog[0].time).getTime()
+        const ev = new Event('processed-peerconnection');
+        ev.connectionId = connectionId;
+        this.dispatchEvent(ev);
+    }
+
+    processStats(connectionId) {
+        const peerConnectionTrace = this.data.PeerConnections[connectionId];
+        const referenceTime = document.getElementById('useReferenceTime').checked && peerConnectionTrace.updateLog.length
+            ? new Date(peerConnectionTrace.updateLog[0].time).getTime()
             : undefined;
         this.graphs[connectionId] = {};
 
-        const reportobj = createInternalsTimeSeries(connection);
+        const reportobj = createInternalsTimeSeries(peerConnectionTrace);
         if (reportobj) {
             const lastStats = {};
             for (let id in reportobj) {
@@ -190,9 +194,37 @@ export class WebRTCInternalsDumpImporter {
                 };
             })(reportname, container, graph);
         });
+
+        const ev = new Event('processed-stats');
+        ev.connectionId = connectionId;
+        this.dispatchEvent(ev);
     }
 
-    processTraceEvent(traceEvent, state) {
+    _showStateChanges(connectionId) {
+        // update state displays
+        const peerConnectionTrace = this.data.PeerConnections[connectionId];
+        let hadEvent = false;
+        for (const traceEvent of peerConnectionTrace.updateLog) {
+            // FIXME: would be cool if a click on this would jump to the table row
+            if (traceEvent.type === 'iceconnectionstatechange') {
+                this.containers[connectionId].iceConnectionState.textContent += ' => ' + traceEvent.value;
+                hadEvent = true;
+            } else if (traceEvent.type === 'connectionstatechange') {
+                this.containers[connectionId].connectionState.textContent += ' => ' + traceEvent.value;
+                hadEvent = true;
+            } else if (traceEvent.type === 'signalingstatechange') {
+                this.containers[connectionId].signalingState.textContent += ' => ' + traceEvent.value;
+                hadEvent = true;
+            }
+        }
+        if (!hadEvent) {
+            this.containers[connectionId].iceConnectionState.style.display = 'none';
+            this.containers[connectionId].connectionState.style.display = 'none';
+            this.containers[connectionId].signalingState.style.display = 'none';
+        }
+    }
+
+    _processTraceEvent(traceEvent, state) {
         const row = document.createElement('tr');
         let el = document.createElement('td');
         el.setAttribute('nowrap', '');
