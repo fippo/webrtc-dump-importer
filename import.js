@@ -258,15 +258,35 @@ export class WebRTCInternalsDumpImporter extends EventTarget {
                 el.innerText += ' (' + toShow.join(', ') + ')';
             }
         }
-        if (traceEvent.value.indexOf(', sdp: ') != -1) {
-            const [type, sdp] = traceEvent.value.substr(6).split(', sdp: ');
+        if (traceEvent.value.startsWith('{"type":') || traceEvent.value.indexOf(', sdp: ') != -1) {
+            let type;
+            let sdp;
+            if (traceEvent.value.startsWith('{"type":')) {
+                const result = JSON.parse(traceEvent.value);
+                type = result.type;
+                sdp = result.sdp;
+            } else { // legacy format.
+                const result = traceEvent.value.substr(6).split(', sdp: ');
+                type = result[0];
+                sdp = result[1];
+            }
             let last_sections;
             let remote_sections;
             if (traceEvent.type === 'setLocalDescription') {
                 const lastCreated = type === 'offer' ? state.lastCreatedOffer : state.lastCreatedAnswer;
                 if ((type === 'offer' && state.lastCreatedOffer) || (type === 'answer' && state.lastCreatedAnswer)) {
-                    const [last_type, last_sdp] = (type === 'offer' ? state.lastCreatedOffer : state.lastCreatedAnswer)
-                        .substr(6).split(', sdp: ');
+                    let last_type;
+                    let last_sdp;
+                    const lastDescription = (type === 'offer' ? state.lastCreatedOffer : state.lastCreatedAnswer);
+                    if (lastDescription.startsWith('{"type":')) {
+                        const result = JSON.parse(lastDescription);
+                        last_type = result.type;
+                        last_sdp = result.sdp;
+                    } else {
+                        const result = lastDescription.substr(6).split(', sdp: ');
+                        last_type = result[0];
+                        last_sdp = result[1];
+                    }
                     if (sdp != last_sdp) {
                         last_sections = SDPUtils.splitSections(last_sdp);
                         details.open = true;
