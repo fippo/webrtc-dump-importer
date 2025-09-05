@@ -237,11 +237,26 @@ export class WebRTCInternalsDumpImporter extends EventTarget {
         el.innerText = traceEvent.type;
         details.appendChild(el);
 
-        if (['іcecandidate', 'addIceCandidate'].includes(traceEvent.type)) {
-            if (traceEvent.value) {
+        if (['іcecandidate', 'addIceCandidate'].includes(traceEvent.type) && traceEvent.value) {
+            const toShow = [];
+            if (traceEvent.value.startsWith('{')) {
+                const parts = JSON.parse(traceEvent.value);
+                ['sdpMid', 'sdpMLineIndex'].forEach(property => {
+                    toShow.push(property + ': ' + parts[property]);
+                });
+                if (parts.candidate) {
+                    const candidate = SDPUtils.parseCandidate(parts.candidate.trim());
+                    if (candidate) {
+                        toShow.push('port:' + candidate.port);
+                        toShow.push('type: ' + candidate.type);
+                    }
+                }
+                if (parts.relayProtocol) {
+                    toShow.push('relayProtocol: ' + parts.relayProtocol);
+                }
+            } else {
                 const parts = traceEvent.value.split(', ')
                     .map(part => part.split(': '));
-                const toShow = [];
                 parts.forEach(part => {
                     if (['sdpMid', 'sdpMLineIndex'].includes(part[0])) {
                         toShow.push(part.join(': '));
@@ -255,8 +270,8 @@ export class WebRTCInternalsDumpImporter extends EventTarget {
                         toShow.push('relayProtocol: ' + part[1]);
                     }
                 });
-                el.innerText += ' (' + toShow.join(', ') + ')';
             }
+            el.innerText += ' (' + toShow.join(', ') + ')';
         }
         if (traceEvent.value.startsWith('{"type":') || traceEvent.value.indexOf(', sdp: ') != -1) {
             let type;
