@@ -273,6 +273,7 @@ export class WebRTCInternalsDumpImporter extends EventTarget {
             }
             el.innerText += ' (' + toShow.join(', ') + ')';
         }
+
         if (traceEvent.value.startsWith('{"type":') || traceEvent.value.indexOf(', sdp: ') != -1) {
             let type;
             let sdp;
@@ -313,6 +314,9 @@ export class WebRTCInternalsDumpImporter extends EventTarget {
                 }
             }
             processDescriptionEvent(details, traceEvent.type, {type, sdp}, last_sections, remote_sections);
+        } else if (traceEvent.value && traceEvent.value.startsWith('{')) {
+            el = document.createElement('pre');
+            el.innerText = JSON.stringify(JSON.parse(traceEvent.value), null, ' ');
         } else {
             el = document.createElement('pre');
             el.innerText = traceEvent.value;
