@@ -339,9 +339,12 @@ export class WebRTCInternalsDumpImporter extends EventTarget {
             switch(traceEvent.value) {
                 case 'connected':
                 case 'completed':
+                case '"connected"':
+                case '"completed"':
                     row.style.backgroundColor = 'green';
                     break;
                 case 'failed':
+                case '"failed"':
                     row.style.backgroundColor = 'red';
                     break;
             }
