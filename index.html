@@ -43,7 +43,14 @@ button.copyBtn {
         </style>
     </head>
     <body>
-        <p>This version is deprecated. Use the <a href="https://rtcstats.github.io/rtcstats/dump-importer/">rtcstats version</a> and update your bookmarks.</p>
+        <img src="https://www.rtcstats.com/opengraph-image.png" style="float:right;width:600px" title="Give rtcstats.com a try for importing your dumps!">
+        <h1>This version of the webrtc-internals dump importer is no longer maintained</h2>
+        <p>
+            For something really powerful, you can use <a href="https://rtcstats.com">rtcstats.com</a> - it is free as well - and a lot nicer (as you can see on the right).</p>
+        <p>
+            If you're adamant that you want to use this rusty thing, you can use the version found <a href="https://github.com/rtcstats/rtcstats/tree/main/dump-importer">here</a>.
+        </p>
+        <hr>
         <p>This is an import tool for dumps from chrome://webrtc-internals. See <a href="https://bloggeek.me/webrtc-internals/">this blog post</a> for a lengthy description of what it does and how to interpret some of the data.
         <form>
             <label>Select a WebRTC-internals JSON dump:</label>
@@ -52,7 +59,7 @@ button.copyBtn {
             <input type="checkbox" id="useReferenceTime"><label for="useReferenceTime">Use RTCPeerConnection creation time as start time for all graphs.</label>
         </form>
         <div id="legacy" style="display:none">
-            <b>Legacy getStats detected, these have been remove from Chrome 122 in early 2024.</b>
+            <b>Legacy getStats detected, these have been removed from Chrome 122 in early 2024.</b>
             If you need to import such a dump please use an old version of the git repository prior
             to this <a href="https://github.com/fippo/webrtc-dump-importer/commit/136f273810d90e915f05d10e0ff3fb98ee9f041b">commit</a>.
         </div>
