@@ -1,5 +1,9 @@
-# This version of the webrtc-internals dump importer is no longer maintained
-Use [rtcstats.com](https://rtcstats.com) or the [rtcstats version](https://github.com/rtcstats/rtcstats/tree/main/dump-importer) and update your bookmarks.
+> ⚠️ **Deprecated — do not use.**
+> The maintained dump importer now lives in
+> **[rtcstats/rtcstats](https://github.com/rtcstats/rtcstats)** under **`dump-importer/`**,
+> and is hosted at **[rtcstats.github.io/rtcstats/dump-importer](https://rtcstats.github.io/rtcstats/dump-importer/)**.
+> That version reads both `rtcstats` and `webrtc-internals` dump formats and is kept
+> maintained. This repository is no longer updated.
 
 ## Import webrtc-internal dumps
 Chrome webrtc-internals page is tremendously useful but lacks the ability to reimport the exported dumps.
